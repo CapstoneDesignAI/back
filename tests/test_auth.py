@@ -6,9 +6,8 @@ from app.services.auth.kakao import kakao_auth_service
 
 client = TestClient(app)
 
-
 def test_get_kakao_login_url() -> None:
-    response = client.get("/api/v1/auth/kakao/login")
+    response = client.get("/api/auth/kakao/login")
 
     assert response.status_code == 200
     data = response.json()
@@ -49,7 +48,7 @@ def test_kakao_callback(monkeypatch) -> None:
         fake_get_user_info,
     )
 
-    response = client.get("/api/v1/auth/kakao/callback?code=test-code&state=abc123")
+    response = client.get("/api/auth/kakao/callback?code=test-code&state=abc123")
 
     assert response.status_code == 200
     assert response.json() == {

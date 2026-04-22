@@ -1,8 +1,6 @@
 import secrets
 from urllib.parse import urlencode
-
 import httpx
-
 from app.core.config import settings
 from app.schemas.auth import (
     KakaoLoginUrlResponse,
@@ -10,16 +8,16 @@ from app.schemas.auth import (
     KakaoUserProfile,
 )
 
-
 class KakaoAuthError(Exception):
-    """Raised when Kakao OAuth requests fail."""
+    """Kakao OAuth requests fail."""
 
 
 class KakaoAuthService:
-    authorize_url = "https://kauth.kakao.com/oauth/authorize"
-    token_url = "https://kauth.kakao.com/oauth/token"
-    user_info_url = "https://kapi.kakao.com/v2/user/me"
+    authorize_url = "https://kauth.kakao.com/oauth/authorize" # Kakao 로그인 URL
+    token_url = "https://kauth.kakao.com/oauth/token" # Kakao 토큰 발급 URL
+    user_info_url = "https://kapi.kakao.com/v2/user/me" # Kakao 사용자 정보 조회 URL
 
+    #로그인 URL 생성
     def build_login_response(
         self,
         state: str | None = None,
@@ -40,6 +38,7 @@ class KakaoAuthService:
             state=resolved_state,
         )
 
+    #카카오에서 받은 인가코드를 토큰으로 교환
     async def exchange_code_for_token(self, code: str) -> KakaoTokenResponse:
         if not settings.kakao_rest_api_key:
             raise KakaoAuthError("KAKAO_REST_API_KEY is not configured.")
@@ -63,6 +62,7 @@ class KakaoAuthService:
 
         return KakaoTokenResponse.model_validate(response.json())
 
+    #사용자 정보 조회
     async def get_user_info(self, access_token: str) -> KakaoUserProfile:
         headers = {"Authorization": f"Bearer {access_token}"}
 
