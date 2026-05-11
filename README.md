@@ -29,25 +29,20 @@
 
 <br/>
 
-### 협업 툴
+### 🤝 협업 툴
 <div>
-<img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
-<img src="https://img.shields.io/badge/figma-EF2D5E?style=for-the-badge&logo=figma&logoColor=black">
-<img src="https://img.shields.io/badge/swagger-white?style=for-the-badge&logo=swagger&logoColor=green">
-<img src="https://img.shields.io/badge/notion-white?style=for-the-badge&logo=notion&logoColor=black">
-  
+  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white">
+  <img src="https://img.shields.io/badge/Figma-EF2D5E?style=for-the-badge&logo=figma&logoColor=white">
+  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black">
+  <img src="https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white">
+  <img src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white">
+  <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white">
 </div>
 
-## Deploy
-
-<div>
-  <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=Vercel&logoColor=white"/>
-</div>
-<br/>
 
 ## 👥 팀원
 
-| <a href=https://github.com/shuding0307><img src="https://github.com/settings/profile" width=100px/><br/><sub><b>@shuding0307</b></sub></a><br/> | <a href=https://github.com/ProgrammerDavid1><img src="https://avatars.githubusercontent.com/u/161571242?v=4" width=100px/><br/><sub><b>@ProgrammerDavid1</b></sub></a><br/> | <a href=https://github.com/ddufls><img src="https://avatars.githubusercontent.com/u/153452513?v=4" width=100px/><br/><sub><b>@ddufls</b></sub></a><br/> |
+| <a href=https://github.com/shuding0307><img src="https://avatars.githubusercontent.com/u/129826514?v=4" width=100px/><br/><sub><b>@shuding0307</b></sub></a><br/> | <a href=https://github.com/ProgrammerDavid1><img src="https://avatars.githubusercontent.com/u/161571242?v=4" width=100px/><br/><sub><b>@ProgrammerDavid1</b></sub></a><br/> | <a href=https://github.com/ddufls><img src="https://avatars.githubusercontent.com/u/153452513?v=4" width=100px/><br/><sub><b>@ddufls</b></sub></a><br/> |
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------:|
 |                                                                          이수현                                                                            |                                                                            박준석                                                                             |                                             김수린                                        |
 
