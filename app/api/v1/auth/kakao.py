@@ -21,11 +21,11 @@ async def kakao_callback(
     try:
         token = await kakao_auth_service.exchange_code_for_token(code=code)
         user = await kakao_auth_service.get_user_info(access_token=token.access_token)
-    except KakaoAuthError:
+    except KakaoAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=KakaoAuthError,
-        ) 
+            detail=str(exc),
+        ) from exc
 
     return KakaoCallbackResponse(
         provider="kakao",
