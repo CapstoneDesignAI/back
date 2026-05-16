@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.schemas.auth import KakaoCallbackResponse, KakaoLoginUrlResponse
+from app.schemas.auth import KakaoCallbackResponse, KakaoLoginUrlResponse,RedirectResponse
 from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
 
 router = APIRouter(prefix="/auth/kakao")
 
-@router.get("/login", response_model=KakaoLoginUrlResponse, summary="Get Kakao login URL")
+@router.get("", response_model=KakaoLoginUrlResponse, summary="카카오 로그인 URL 받아오기")
 def get_kakao_login_url(
     state: str | None = Query(default=None),
     scope: str | None = Query(default=None),
@@ -13,7 +13,7 @@ def get_kakao_login_url(
     return kakao_auth_service.build_login_response(state=state, scope=scope)
 
 
-@router.get("/callback", response_model=KakaoCallbackResponse, summary="Kakao login callback")
+@router.get("/callback", response_model=KakaoCallbackResponse, summary="카카오 로그인 콜백")
 async def kakao_callback(
     code: str = Query(...),
     state: str | None = Query(default=None),
@@ -27,9 +27,10 @@ async def kakao_callback(
             detail=str(exc),
         ) from exc
 
-    return KakaoCallbackResponse(
-        provider="kakao",
-        state=state,
-        token=token,
-        user=user,
-    )
+    # TODO: 우리 서비스 유저 생성/조회
+    # TODO: 우리 서비스 JWT 발급
+    
+    return RedirectResponse(
+        url=f"capstoneai://login/success?accessToken={token.access_token}&refreshToken={token.refresh_token}"
+        )
+    

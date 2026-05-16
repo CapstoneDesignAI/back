@@ -29,3 +29,6 @@ class KakaoCallbackResponse(BaseModel):
     state: str | None = None
     token: KakaoTokenResponse
     user: KakaoUserProfile
+    
+class RedirectResponse(BaseModel):
+    url: str
