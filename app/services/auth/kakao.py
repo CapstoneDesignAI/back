@@ -8,6 +8,8 @@ from app.schemas.auth import (
     KakaoUserProfile,
 )
 
+
+
 class KakaoAuthError(Exception):
     """Kakao OAuth requests fail."""
 
