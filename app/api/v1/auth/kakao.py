@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
 
+from app.core.config import settings
 from app.schemas.auth import KakaoLoginUrlResponse
 from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
 
@@ -28,10 +30,10 @@ async def kakao_callback(
             detail=str(exc),
         ) from exc
 
-    # TODO: 우리 서비스 유저 생성/조회
-    # TODO: 우리 서비스 JWT 발급
-    
-    return RedirectResponse(
-        url=f"exp://172.30.1.83:8081/--/login/success?accessToken={token.access_token}&refreshToken={token.refresh_token}"
-        )
-    
+    query = urlencode(
+        {
+            "accessToken": token.access_token,
+            "refreshToken": token.refresh_token or "",
+        }
+    )
+    return RedirectResponse(url=f"{settings.kakao_frontend_redirect_uri}?{query}")

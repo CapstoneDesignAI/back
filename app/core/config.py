@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     kakao_rest_api_key: str
     kakao_redirect_uri: str
     kakao_client_secret: str | None = None
+    kakao_frontend_redirect_uri: str
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
