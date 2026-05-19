@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.schemas.auth import KakaoLoginUrlResponse
 from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
 from app.services.auth.supabase_users import SupabaseUserSyncError, supabase_user_service
+from app.services.auth.tokens import token_service
 
 router = APIRouter(prefix="/auth/kakao")
 
@@ -23,9 +24,9 @@ async def kakao_callback(
     state: str | None = Query(default=None),
 ):
     try:
-        token = await kakao_auth_service.exchange_code_for_token(code=code)
-        user = await kakao_auth_service.get_user_info(access_token=token.access_token)
-        await supabase_user_service.save_kakao_user(user)
+        kakao_token = await kakao_auth_service.exchange_code_for_token(code=code)
+        user = await kakao_auth_service.get_user_info(access_token=kakao_token.access_token)
+        user_id = await supabase_user_service.save_kakao_user(user)
     except KakaoAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -37,10 +38,24 @@ async def kakao_callback(
             detail=str(exc),
         ) from exc
 
+    email = user.kakao_account.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Kakao account email is required to issue service tokens.",
+        )
+
+    access_token = token_service.create_access_token(
+        user_id=user_id,
+        kakao_id=user.id,
+        email=str(email),
+    )
+    refresh_token = token_service.create_refresh_token(user_id=user_id)
+
     query = urlencode(
         {
-            "accessToken": token.access_token,
-            "refreshToken": token.refresh_token or "",
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
         }
     )
     return RedirectResponse(url=f"{settings.kakao_frontend_redirect_uri}?{query}")

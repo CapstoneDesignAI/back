@@ -1,3 +1,7 @@
+import base64
+import json
+from urllib.parse import parse_qs, urlparse
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -68,5 +72,25 @@ def test_kakao_callback(monkeypatch) -> None:
     )
 
     assert response.status_code == 307
-    assert "accessToken=access-token" in response.headers["location"]
-    assert "refreshToken=refresh-token" in response.headers["location"]
+    location = response.headers["location"]
+    query = parse_qs(urlparse(location).query)
+    access_token = query["accessToken"][0]
+    refresh_token = query["refreshToken"][0]
+
+    assert access_token != "access-token"
+    assert refresh_token != "refresh-token"
+
+    access_payload = _decode_jwt_payload(access_token)
+    refresh_payload = _decode_jwt_payload(refresh_token)
+    assert access_payload["sub"] == "00000000-0000-0000-0000-000000000000"
+    assert access_payload["type"] == "access"
+    assert access_payload["email"] == "codex@example.com"
+    assert access_payload["kakao_id"] == 123456789
+    assert refresh_payload["sub"] == "00000000-0000-0000-0000-000000000000"
+    assert refresh_payload["type"] == "refresh"
+
+
+def _decode_jwt_payload(token: str) -> dict:
+    payload = token.split(".")[1]
+    padded_payload = payload + "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(padded_payload))
