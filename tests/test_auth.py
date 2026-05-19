@@ -6,7 +6,6 @@ from app.services.auth.kakao import kakao_auth_service
 
 client = TestClient(app)
 
-
 def test_get_kakao_login_url() -> None:
     response = client.get("/api/v1/auth/kakao/login")
 

@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
 
-from app.schemas.auth import KakaoCallbackResponse, KakaoLoginUrlResponse
+from app.core.config import settings
+from app.schemas.auth import KakaoLoginUrlResponse
 from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
 
 router = APIRouter(prefix="/auth/kakao")
 
-@router.get("/login", response_model=KakaoLoginUrlResponse, summary="Get Kakao login URL")
+@router.get("", response_model=KakaoLoginUrlResponse, summary="카카오 로그인 URL 받아오기")
 def get_kakao_login_url(
     state: str | None = Query(default=None),
     scope: str | None = Query(default=None),
@@ -13,11 +16,11 @@ def get_kakao_login_url(
     return kakao_auth_service.build_login_response(state=state, scope=scope)
 
 
-@router.get("/callback", response_model=KakaoCallbackResponse, summary="Kakao login callback")
+@router.get("/callback", summary="카카오 로그인 콜백")
 async def kakao_callback(
     code: str = Query(...),
     state: str | None = Query(default=None),
-) -> KakaoCallbackResponse:
+):
     try:
         token = await kakao_auth_service.exchange_code_for_token(code=code)
         user = await kakao_auth_service.get_user_info(access_token=token.access_token)
@@ -27,9 +30,10 @@ async def kakao_callback(
             detail=str(exc),
         ) from exc
 
-    return KakaoCallbackResponse(
-        provider="kakao",
-        state=state,
-        token=token,
-        user=user,
+    query = urlencode(
+        {
+            "accessToken": token.access_token,
+            "refreshToken": token.refresh_token or "",
+        }
     )
+    return RedirectResponse(url=f"{settings.kakao_frontend_redirect_uri}?{query}")

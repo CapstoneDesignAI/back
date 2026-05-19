@@ -1,8 +1,6 @@
 import secrets
 from urllib.parse import urlencode
-
 import httpx
-
 from app.core.config import settings
 from app.schemas.auth import (
     KakaoLoginUrlResponse,
@@ -10,15 +8,13 @@ from app.schemas.auth import (
     KakaoUserProfile,
 )
 
-
 class KakaoAuthError(Exception):
-    """Raised when Kakao OAuth requests fail."""
-
+    """Kakao OAuth requests fail."""
 
 class KakaoAuthService:
-    authorize_url = "https://kauth.kakao.com/oauth/authorize"
-    token_url = "https://kauth.kakao.com/oauth/token"
-    user_info_url = "https://kapi.kakao.com/v2/user/me"
+    authorize_url = "https://kauth.kakao.com/oauth/authorize" # Kakao 로그인 URL
+    token_url = "https://kauth.kakao.com/oauth/token" # Kakao 토큰 발급 URL
+    user_info_url = "https://kapi.kakao.com/v2/user/me" # Kakao 사용자 정보 조회 URL
 
     def build_login_response(
         self,
@@ -63,6 +59,7 @@ class KakaoAuthService:
 
         return KakaoTokenResponse.model_validate(response.json())
 
+    #사용자 정보 조회
     async def get_user_info(self, access_token: str) -> KakaoUserProfile:
         headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -73,6 +70,5 @@ class KakaoAuthService:
             raise KakaoAuthError(f"Failed to retrieve Kakao user info: {response.text}")
 
         return KakaoUserProfile.model_validate(response.json())
-
 
 kakao_auth_service = KakaoAuthService()
