@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     kakao_redirect_uri: str
     kakao_client_secret: str | None = None
     kakao_frontend_redirect_uri: str
+    supabase_url: str | None = None
+    supabase_service_role_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

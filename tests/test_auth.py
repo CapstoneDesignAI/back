@@ -3,17 +3,19 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.schemas.auth import KakaoTokenResponse, KakaoUserProfile
 from app.services.auth.kakao import kakao_auth_service
+from app.services.auth.supabase_users import supabase_user_service
 
 client = TestClient(app)
 
 def test_get_kakao_login_url() -> None:
-    response = client.get("/api/v1/auth/kakao/login")
+    response = client.get("/api/v1/auth/kakao")
 
     assert response.status_code == 200
     data = response.json()
     assert "authorization_url" in data
     assert "state" in data
     assert data["state"]
+    assert "account_email" in data["authorization_url"]
 
 
 def test_kakao_callback(monkeypatch) -> None:
@@ -34,8 +36,15 @@ def test_kakao_callback(monkeypatch) -> None:
             id=123456789,
             connected_at="2026-04-20T10:00:00Z",
             properties={"nickname": "codex"},
-            kakao_account={"profile_nickname_needs_agreement": False},
+            kakao_account={
+                "email": "codex@example.com",
+                "profile_nickname_needs_agreement": False,
+            },
         )
+
+    async def fake_save_kakao_user(user: KakaoUserProfile) -> str:
+        assert user.id == 123456789
+        return "00000000-0000-0000-0000-000000000000"
 
     monkeypatch.setattr(
         kakao_auth_service,
@@ -47,25 +56,17 @@ def test_kakao_callback(monkeypatch) -> None:
         "get_user_info",
         fake_get_user_info,
     )
+    monkeypatch.setattr(
+        supabase_user_service,
+        "save_kakao_user",
+        fake_save_kakao_user,
+    )
 
-    response = client.get("/api/v1/auth/kakao/callback?code=test-code&state=abc123")
+    response = client.get(
+        "/api/v1/auth/kakao/callback?code=test-code&state=abc123",
+        follow_redirects=False,
+    )
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "provider": "kakao",
-        "state": "abc123",
-        "token": {
-            "token_type": "bearer",
-            "access_token": "access-token",
-            "expires_in": 21599,
-            "refresh_token": "refresh-token",
-            "refresh_token_expires_in": 5183999,
-            "scope": "profile_nickname",
-        },
-        "user": {
-            "id": 123456789,
-            "connected_at": "2026-04-20T10:00:00Z",
-            "properties": {"nickname": "codex"},
-            "kakao_account": {"profile_nickname_needs_agreement": False},
-        },
-    }
+    assert response.status_code == 307
+    assert "accessToken=access-token" in response.headers["location"]
+    assert "refreshToken=refresh-token" in response.headers["location"]

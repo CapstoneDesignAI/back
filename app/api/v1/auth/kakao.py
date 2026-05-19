@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from app.core.config import settings
 from app.schemas.auth import KakaoLoginUrlResponse
 from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
+from app.services.auth.supabase_users import SupabaseUserSyncError, supabase_user_service
 
 router = APIRouter(prefix="/auth/kakao")
 
@@ -24,7 +25,13 @@ async def kakao_callback(
     try:
         token = await kakao_auth_service.exchange_code_for_token(code=code)
         user = await kakao_auth_service.get_user_info(access_token=token.access_token)
+        await supabase_user_service.save_kakao_user(user)
     except KakaoAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    except SupabaseUserSyncError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(exc),
