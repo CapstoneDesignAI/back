@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     app_name: str = "CapstoneAI Back"
-    api_prefix: str 
+    api_prefix: str = "/api/v1"
     jwt_secret_key: str = "change-me-in-production"
     jwt_issuer: str = "capstoneai"
     access_token_expire_seconds: int = 60 * 60
