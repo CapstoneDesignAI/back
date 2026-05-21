@@ -1,14 +1,10 @@
 from typing import Any
-
 import httpx
-
 from app.core.config import settings
 from app.schemas.auth import KakaoUserProfile
 
-
 class SupabaseUserSyncError(Exception):
     """Supabase user synchronization fails."""
-
 
 class SupabaseUserService:
     def __init__(self) -> None:
@@ -196,9 +192,9 @@ class SupabaseUserService:
                 "profile_img": profile_img,
             },
         )
-        self._raise_for_supabase_error(response, "Failed to upsert public user")
+        self._raise_supabase_error(response, "Failed to upsert public user")
 
-    def _raise_for_supabase_error(self, response: httpx.Response, message: str) -> None:
+    def _raise_supabase_error(self, response: httpx.Response, message: str) -> None:
         if response.is_success:
             return
 
