@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from app.core.config import settings
 from app.schemas.auth import KakaoLoginUrlResponse
-from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
+from app.services.auth.kakao_oauth_service import KakaoAuthError, kakao_auth_service
 
 router = APIRouter(prefix="/auth/kakao")
 

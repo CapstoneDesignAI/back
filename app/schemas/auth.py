@@ -1,5 +1,4 @@
 from typing import Any
-
 from pydantic import BaseModel, Field
 
 
@@ -18,7 +17,7 @@ class KakaoTokenResponse(BaseModel):
 
 
 class KakaoUserProfile(BaseModel):
-    id: int
+    id: str
     connected_at: str | None = None
     properties: dict[str, Any] = Field(default_factory=dict)
     kakao_account: dict[str, Any] = Field(default_factory=dict)
