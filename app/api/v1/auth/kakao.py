@@ -21,7 +21,6 @@ def get_kakao_login_url(
 @router.get("/callback", summary="카카오 로그인 콜백")
 async def kakao_callback(
     code: str = Query(...),
-    state: str | None = Query(default=None),
 ):
     try:
         kakao_token = await kakao_auth_service.exchange_code_for_token(code=code)

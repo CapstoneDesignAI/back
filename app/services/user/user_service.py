@@ -1,44 +1,38 @@
 import httpx
 from fastapi import HTTPException, status
 
-from app.core.config import settings
+from app.db.supabase import (
+    SupabaseConfigError,
+    SupabaseRequestError,
+    supabase_client,
+)
 from app.schemas.user import UserData
 
-def _supabase_headers() -> dict[str, str]: 
-    if not settings.supabase_url or not settings.supabase_service_role_key:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Supabase settings are not configured.",
-        )
-
-    return {
-        "apikey": settings.supabase_service_role_key,
-        "Authorization": f"Bearer {settings.supabase_service_role_key}",
-    }
-
 async def build_user_profile_response(user_id: str) -> UserData:
-    if not settings.supabase_url:
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                supabase_client.rest_url("/users"),
+                headers=supabase_client.headers(),
+                params={
+                    "select": "id,email, nickname, profile_img",
+                    "id": f"eq.{user_id}",
+                    "limit": "1",
+                },
+            )
+    except SupabaseConfigError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SUPABASE_URL is not configured.",
-        )
+            detail=str(exc),
+        ) from exc
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(
-            f"{settings.supabase_url.rstrip('/')}/rest/v1/users",
-            headers=_supabase_headers(),
-            params={
-                "select": "id,email, nickname, profile_img",
-                "id": f"eq.{user_id}",
-                "limit": "1",
-            },
-        )
-
-    if response.is_error:
+    try:
+        supabase_client.raise_for_error(response, "Failed to fetch user profile")
+    except SupabaseRequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to fetch user profile: {response.text}",
-        )
+            detail=str(exc),
+        ) from exc
 
     users = response.json()
     if not users:
