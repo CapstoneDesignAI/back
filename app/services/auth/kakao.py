@@ -22,14 +22,14 @@ class KakaoAuthService:
         scope: str | None = None,
     ) -> KakaoLoginUrlResponse:
         resolved_state = state or secrets.token_urlsafe(24)
+        resolved_scope = scope or "profile_nickname,profile_image,account_email"
         params = {
             "response_type": "code",
             "client_id": settings.kakao_rest_api_key,
             "redirect_uri": settings.kakao_redirect_uri,
             "state": resolved_state,
+            "scope": resolved_scope,
         }
-        if scope:
-            params["scope"] = scope
 
         return KakaoLoginUrlResponse(
             authorization_url=f"{self.authorize_url}?{urlencode(params)}",
