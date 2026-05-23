@@ -1,8 +1,9 @@
 # app/services/routes/route_service.py
-from app.db.base import supabase
+from app.db.base import get_supabase
 from app.schemas.routes import RouteListItem, RouteDetailResponse
 
 def get_routes(user_id: str) -> list[RouteListItem]:
+    supabase = get_supabase()
     result = supabase.table("routes") \
         .select("id, title, created_at, route_places(count)") \
         .eq("user_id", user_id) \
@@ -24,6 +25,7 @@ def get_routes(user_id: str) -> list[RouteListItem]:
     return formatted_data
 
 def get_route_detail(route_id: str) -> RouteDetailResponse:
+    supabase = get_supabase()
     result = supabase.table("routes") \
         .select("id, title, created_at, route_places(visit_order, place_id, places(name, address, lat, lng, image_url))") \
         .eq("route_id", route_id) \
