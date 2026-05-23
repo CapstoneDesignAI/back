@@ -1,41 +1,16 @@
 from typing import Any
-
 import httpx
-
-from app.core.config import settings
+from app.db.supabase import (
+    SupabaseConfigError,
+    SupabaseRequestError,
+    supabase_client,
+)
 from app.schemas.auth import KakaoUserProfile
-
 
 class SupabaseUserSyncError(Exception):
     """Supabase user synchronization fails."""
 
-
 class SupabaseUserService:
-    def __init__(self) -> None:
-        self.supabase_url = (settings.supabase_url or "").rstrip("/")
-        self.service_role_key = settings.supabase_service_role_key
-
-    def _headers(self, prefer: str | None = None) -> dict[str, str]:
-        if not self.supabase_url or not self.service_role_key:
-            raise SupabaseUserSyncError(
-                "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured."
-            )
-
-        headers = {
-            "apikey": self.service_role_key,
-            "Authorization": f"Bearer {self.service_role_key}",
-            "Content-Type": "application/json",
-        }
-        if prefer:
-            headers["Prefer"] = prefer
-        return headers
-
-    def _auth_url(self, path: str) -> str:
-        return f"{self.supabase_url}/auth/v1{path}"
-
-    def _rest_url(self, path: str) -> str:
-        return f"{self.supabase_url}/rest/v1{path}"
-
     async def save_kakao_user(self, user: KakaoUserProfile) -> str:
         email = self._extract_email(user)
         nickname = self._extract_nickname(user)
@@ -101,8 +76,8 @@ class SupabaseUserService:
         email: str,
     ) -> str | None:
         response = await client.get(
-            self._rest_url("/users"),
-            headers=self._headers(),
+            supabase_client.rest_url("/users"),
+            headers=supabase_client.headers(),
             params={
                 "select": "id",
                 "email": f"eq.{email}",
@@ -125,8 +100,8 @@ class SupabaseUserService:
         kakao_id: int,
     ) -> str:
         response = await client.post(
-            self._auth_url("/admin/users"),
-            headers=self._headers(),
+            supabase_client.auth_url("/admin/users"),
+            headers=supabase_client.headers(),
             json={
                 "email": email,
                 "email_confirm": True,
@@ -155,8 +130,8 @@ class SupabaseUserService:
     ) -> str | None:
         for page in range(1, 21):
             response = await client.get(
-                self._auth_url("/admin/users"),
-                headers=self._headers(),
+                supabase_client.auth_url("/admin/users"),
+                headers=supabase_client.headers(),
                 params={"page": str(page), "per_page": "1000"},
             )
             self._raise_for_supabase_error(response, "Failed to list Supabase auth users")
@@ -186,8 +161,8 @@ class SupabaseUserService:
         profile_img: str | None,
     ) -> None:
         response = await client.post(
-            self._rest_url("/users"),
-            headers=self._headers("resolution=merge-duplicates"),
+            supabase_client.rest_url("/users"),
+            headers=supabase_client.headers("resolution=merge-duplicates"),
             params={"on_conflict": "id"},
             json={
                 "id": user_id,
@@ -196,13 +171,13 @@ class SupabaseUserService:
                 "profile_img": profile_img,
             },
         )
-        self._raise_for_supabase_error(response, "Failed to upsert public user")
+        self._raise_supabase_error(response, "Failed to upsert public user")
 
-    def _raise_for_supabase_error(self, response: httpx.Response, message: str) -> None:
-        if response.is_success:
-            return
-
-        raise SupabaseUserSyncError(f"{message}: {response.text}")
+    def _raise_supabase_error(self, response: httpx.Response, message: str) -> None:
+        try:
+            supabase_client.raise_for_error(response, message)
+        except (SupabaseConfigError, SupabaseRequestError) as exc:
+            raise SupabaseUserSyncError(str(exc)) from exc
 
 
 supabase_user_service = SupabaseUserService()

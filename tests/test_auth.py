@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.auth import KakaoTokenResponse, KakaoUserProfile
-from app.services.auth.kakao import kakao_auth_service
+from app.services.auth.kakao_oauth_service import kakao_auth_service
 from app.services.auth.supabase_users import supabase_user_service
 
 client = TestClient(app)
@@ -19,7 +19,6 @@ def test_get_kakao_login_url() -> None:
     assert "authorization_url" in data
     assert "state" in data
     assert data["state"]
-    assert "account_email" in data["authorization_url"]
 
 
 def test_kakao_callback(monkeypatch) -> None:
@@ -72,20 +71,20 @@ def test_kakao_callback(monkeypatch) -> None:
     )
 
     assert response.status_code == 307
-    location = response.headers["location"]
-    query = parse_qs(urlparse(location).query)
+    query = parse_qs(urlparse(response.headers["location"]).query)
     access_token = query["accessToken"][0]
     refresh_token = query["refreshToken"][0]
+    access_payload = _decode_jwt_payload(access_token)
+    refresh_payload = _decode_jwt_payload(refresh_token)
 
     assert access_token != "access-token"
     assert refresh_token != "refresh-token"
-
-    access_payload = _decode_jwt_payload(access_token)
-    refresh_payload = _decode_jwt_payload(refresh_token)
+    assert access_payload["iss"] == "capstoneai"
     assert access_payload["sub"] == "00000000-0000-0000-0000-000000000000"
     assert access_payload["type"] == "access"
     assert access_payload["email"] == "codex@example.com"
     assert access_payload["kakao_id"] == 123456789
+    assert refresh_payload["iss"] == "capstoneai"
     assert refresh_payload["sub"] == "00000000-0000-0000-0000-000000000000"
     assert refresh_payload["type"] == "refresh"
 

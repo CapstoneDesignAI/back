@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from app.core.config import settings
 from app.schemas.auth import KakaoLoginUrlResponse
-from app.services.auth.kakao import KakaoAuthError, kakao_auth_service
+from app.services.auth.kakao_oauth_service import KakaoAuthError, kakao_auth_service
 from app.services.auth.supabase_users import SupabaseUserSyncError, supabase_user_service
 from app.services.auth.tokens import token_service
 
@@ -21,7 +21,6 @@ def get_kakao_login_url(
 @router.get("/callback", summary="카카오 로그인 콜백")
 async def kakao_callback(
     code: str = Query(...),
-    state: str | None = Query(default=None),
 ):
     try:
         kakao_token = await kakao_auth_service.exchange_code_for_token(code=code)
