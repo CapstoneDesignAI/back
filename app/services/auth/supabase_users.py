@@ -84,7 +84,7 @@ class SupabaseUserService:
                 "limit": "1",
             },
         )
-        self._raise_for_supabase_error(response, "Failed to find public user")
+        self._raise_supabase_error(response, "Failed to find public user")
 
         users = response.json()
         if users:
@@ -118,7 +118,7 @@ class SupabaseUserService:
             if existing_user_id:
                 return existing_user_id
 
-            self._raise_for_supabase_error(response, "Failed to create Supabase auth user")
+            self._raise_supabase_error(response, "Failed to create Supabase auth user")
 
         auth_user = response.json()
         return str(auth_user["id"])
@@ -134,7 +134,7 @@ class SupabaseUserService:
                 headers=supabase_client.headers(),
                 params={"page": str(page), "per_page": "1000"},
             )
-            self._raise_for_supabase_error(response, "Failed to list Supabase auth users")
+            self._raise_supabase_error(response, "Failed to list Supabase auth users")
 
             data = response.json()
             if isinstance(data, dict):
