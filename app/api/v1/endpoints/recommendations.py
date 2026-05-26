@@ -12,10 +12,8 @@ router = APIRouter()
 )
 async def get_ai_recommendation(
     request_data: AIRecommendationRequest,
-    # current_user_id: str = Depends(get_current_user)
-):
-    current_user_id = "임시_테스트_유저_ID"
-    print(f"🔒 인증에 성공한 유저 UUID: {current_user_id}")
+    current_user_id: str = Depends(get_current_user)
+):    
     duration_text = request_data.duration.value
     transport_text = request_data.transportation.value
     purpose_text = request_data.travel_purpose.value
@@ -32,15 +30,27 @@ async def get_ai_recommendation(
         "places": [
             {
                 "visit_order": 1,
+                "place_id": "place_jeonju_01",
                 "name": f"{region_text} 감성 스팟 A",
                 "address": f"{region_text} 중심가 123",
-                "description": f"{companion_text}과 함께 {atmosphere_text} 분위기를 만끽하며, {transport_text}(으)로 부담 없이 방문하기 좋은 첫 번째 장소입니다."
+                "lat": 35.8149,
+                "lng": 127.1494,
+                "image_url": "https://images.unsplash.com/photo-1599812170327-02ba40989d2c",
+                "description": f"{companion_text}과 함께 {atmosphere_text} 분위기를 만끽하며, {transport_text}(으)로 부담 없이 방문하기 좋은 첫 번째 장소입니다.",
+                "tags": [atmosphere_text, "감성"],
+                "category": "관광명소"
             },
             {
                 "visit_order": 2,
+                "place_id": "place_jeonju_01",
                 "name": f"{region_text} 로컬 맛집 B",
                 "address": f"{region_text} 맛집 거리 456",
-                "description": f"{purpose_text}에 딱 어울리는 스팟으로, {activity_text} 여행을 선호하는 분들에게 강력히 추천하는 코스입니다."
+                "lat": 35.8135,
+                "lng": 127.152,
+                "image_url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+                "description": f"{purpose_text}에 딱 어울리는 스팟으로, {activity_text} 여행을 선호하는 분들에게 강력히 추천하는 코스입니다.",
+                "tags": ["맛집", "로컬느낌"],
+                "category": "식당"
             }
         ]
     }

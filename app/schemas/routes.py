@@ -8,6 +8,9 @@ class RoutePlaceItem(BaseModel):
     lat: float
     lng: float
     image_url: str
+    description: str
+    tags: list[str] = []
+    category: str
 
 class RouteListItem(BaseModel):
     route_id: str

@@ -56,9 +56,15 @@ class AIRecommendationRequest(BaseModel):
 
 class RecommendedPlace(BaseModel):
     visit_order: int
+    place_id: str
     name: str
     address: str
+    lat: float
+    lng: float
+    image_url: str
     description: str
+    tags: list[str] = []
+    category: str
 
 class AIRecommendationResponse(BaseModel):
     title: str
