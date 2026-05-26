@@ -39,6 +39,18 @@ async def get_ai_recommendation(
                 "description": f"{companion_text}과 함께 {atmosphere_text} 분위기를 만끽하며, {transport_text}(으)로 부담 없이 방문하기 좋은 첫 번째 장소입니다.",
                 "tags": [atmosphere_text, "감성"],
                 "category": "관광명소"
+            },
+            {
+                "visit_order": 2,
+                "place_id": "place_jeonju_01",
+                "name": f"{region_text} 로컬 맛집 B",
+                "address": f"{region_text} 맛집 거리 456",
+                "lat": 35.8135,
+                "lng": 127.152,
+                "image_url": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+                "description": f"{purpose_text}에 딱 어울리는 스팟으로, {activity_text} 여행을 선호하는 분들에게 강력히 추천하는 코스입니다.",
+                "tags": ["맛집", "로컬느낌"],
+                "category": "식당"
             }
         ]
     }
