@@ -13,8 +13,8 @@ async def add_bookmark(request_data: BookmarkAddRequest, user_id: str = "5fd0d46
     return {"message": "장소가 즐겨찾기에 성공적으로 추가되었습니다."}
 
 @router.get("", response_model=list[BookmarkedPlaceResponse], summary="찜한 장소 목록 조회")
-async def get_bookmarked_places(folder_name: str | None = None, user_id: str = "5fd0d467-03cb-4364-b8da-bb1d94d32f35"):
-    return bookmark_service.get_bookmarked_places(user_id, folder_name)
+async def get_bookmarked_places(folder_id: str | None = None, user_id: str = "5fd0d467-03cb-4364-b8da-bb1d94d32f35"):
+    return bookmark_service.get_bookmarked_places(user_id, folder_id)
 
 @router.delete("/{bookmark_id}", summary="찜한 장소 삭제")
 async def delete_bookmark(bookmark_id: str, user_id: str = "5fd0d467-03cb-4364-b8da-bb1d94d32f35"):

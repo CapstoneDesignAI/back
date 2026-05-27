@@ -4,11 +4,23 @@ from app.schemas.bookmarks import BookmarkAddRequest, BookmarkedPlaceResponse
 def add_bookmark(user_id: str, request_data: BookmarkAddRequest) -> bool:
     supabase = get_supabase()
     try:
-        target_folder_name = request_data.folder_name if request_data.folder_name else "기본 폴더"
-
+        target_folder_id = request_data.folder_id
+        
+        if not target_folder_id:
+            folder_res = supabase.table("folders") \
+                .select("id") \
+                .eq("user_id", user_id) \
+                .eq("is_default", True) \
+                .execute()
+                
+            if folder_res.data:
+                target_folder_id = folder_res.data[0]["id"]
+            else:
+                return False
+            
         supabase.table("bookmarks").insert({
             "user_id": user_id,
-            "folder_name": target_folder_name,
+            "folder_id": target_folder_id,
             "place_id": request_data.place_id
         }).execute()
         
@@ -18,13 +30,13 @@ def add_bookmark(user_id: str, request_data: BookmarkAddRequest) -> bool:
         return False
 
 
-def get_bookmarked_places(user_id: str, folder_name: str | None = None) -> list[BookmarkedPlaceResponse]:
+def get_bookmarked_places(user_id: str, folder_id: str | None = None) -> list[BookmarkedPlaceResponse]:
     supabase = get_supabase()
 
-    query = supabase.table("bookmarks").select("id, folder_name, place_id, places(name, address, image_url, category)").eq("user_id", user_id)
+    query = supabase.table("bookmarks").select("id, folder_id, place_id, places(name, address, image_url, category)").eq("user_id", user_id)
     
-    if folder_name:
-        query = query.eq("folder_name", folder_name)
+    if folder_id:
+        query = query.eq("folder_id", folder_id)
         
     result = query.execute()
     
@@ -33,7 +45,7 @@ def get_bookmarked_places(user_id: str, folder_name: str | None = None) -> list[
         place_info = row.get("places") or {}
         formatted_data.append({
             "bookmark_id": str(row["id"]),
-            "folder_name": row["folder_name"],
+            "folder_id": row["folder_id"],
             "place_id": row["place_id"],
             "name": place_info.get("name") or "이름 없음",
             "address": place_info.get("address") or "주소 없음",
