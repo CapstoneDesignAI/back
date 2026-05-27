@@ -70,3 +70,120 @@ class AIRecommendationResponse(BaseModel):
     title: str
     estimated_time: str
     places: list[RecommendedPlace]
+
+
+class RegionItem(BaseModel):
+    id: str
+    area_group: str
+    sido: str
+    sigungu: str
+    is_population_decline: bool
+
+
+class RegionListResponse(BaseModel):
+    regions: list[RegionItem]
+
+
+class OptionItem(BaseModel):
+    code: str
+    label: str
+
+
+class SelectionModeItem(BaseModel):
+    code: str
+    label: str
+    description: str
+
+
+class RegionGroupItem(BaseModel):
+    area_group: OptionItem
+    regions: list[RegionItem]
+
+
+class RecommendationOptionsResponse(BaseModel):
+    area_groups: list[OptionItem]
+    themes: list[OptionItem]
+    travel_times: list[OptionItem]
+    transports: list[OptionItem]
+    companions: list[OptionItem]
+
+
+class SelectionOptionsResponse(RecommendationOptionsResponse):
+    region_selection_modes: list[SelectionModeItem]
+    regions_by_area_group: list[RegionGroupItem]
+
+
+class RecommendationRequest(BaseModel):
+    region_id: str | None = None
+    area_group: str | None = None
+    theme: str = Field(..., examples=["healing"])
+    travel_time: str = Field(..., examples=["half_day"])
+    transport: str = Field(..., examples=["walk"])
+    companion: str = Field(..., examples=["friends"])
+    prefer_ai_region: bool = False
+
+
+class PlaceItem(BaseModel):
+    place_id: str
+    region_id: str
+    name: str
+    category: str
+    address: str
+    lat: float
+    lng: float
+    stay_minutes: int
+    estimated_cost_min: int
+    estimated_cost_max: int
+    local_contribution_score: int
+    theme_tags: list[str]
+    transport_tags: list[str]
+    companion_tags: list[str]
+    is_local_consumption: bool
+    reason: str
+    contribution_reason: str
+    image_url: str | None = None
+    source: str
+
+
+class PlaceListResponse(BaseModel):
+    places: list[PlaceItem]
+
+
+class RouteRecommendationPlace(BaseModel):
+    order: int
+    place_id: str
+    name: str
+    category: str
+    address: str
+    lat: float
+    lng: float
+    stay_minutes: int
+    reason: str
+    contribution_reason: str
+    image_url: str | None = None
+    estimated_cost_min: int
+    estimated_cost_max: int
+    local_contribution_score: int
+    theme_tags: list[str]
+    is_local_consumption: bool
+    recommendation_score: int
+    score_reasons: list[str]
+    source: str
+
+
+class RecommendationResponse(BaseModel):
+    recommendation_id: str
+    title: str
+    region: RegionItem
+    theme: str
+    travel_time: str
+    transport: str
+    companion: str
+    contribution_score: int
+    estimated_duration_minutes: int
+    estimated_cost_min: int
+    estimated_cost_max: int
+    local_consumption_count: int
+    ai_reason: str
+    places: list[RouteRecommendationPlace]
+    is_saved: bool = False

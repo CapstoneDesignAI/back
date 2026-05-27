@@ -1,8 +1,76 @@
-from fastapi import APIRouter, Depends, status
-from app.schemas.recommendations import AIRecommendationRequest, AIRecommendationResponse
+from fastapi import APIRouter, Depends, Query, status
+from app.schemas.recommendations import (
+    AIRecommendationRequest,
+    AIRecommendationResponse,
+    PlaceListResponse,
+    RecommendationOptionsResponse,
+    RecommendationRequest,
+    RecommendationResponse,
+    RegionListResponse,
+    SelectionOptionsResponse,
+)
 from app.core.jwt import get_current_user  
+from app.services.recommendations import (
+    create_recommendation,
+    get_recommendation_options,
+    get_selection_options,
+    get_today_recommendation,
+    list_places,
+    list_regions,
+)
 
 router = APIRouter()
+
+
+@router.get("/regions", response_model=RegionListResponse, summary="인구감소지역 목록")
+def read_regions(
+    area_group: str | None = Query(default=None),
+) -> RegionListResponse:
+    return list_regions(area_group=area_group)
+
+
+@router.get("/places", response_model=PlaceListResponse, summary="MVP 장소 데이터 목록")
+def read_places(
+    region_id: str | None = Query(default=None),
+) -> PlaceListResponse:
+    return list_places(region_id=region_id)
+
+
+@router.get(
+    "/recommendations/options",
+    response_model=RecommendationOptionsResponse,
+    summary="추천 필터 선택지",
+)
+def read_recommendation_options() -> RecommendationOptionsResponse:
+    return get_recommendation_options()
+
+
+@router.get(
+    "/recommendations/selection-options",
+    response_model=SelectionOptionsResponse,
+    summary="내 여행 찾기 화면 선택지",
+)
+def read_selection_options() -> SelectionOptionsResponse:
+    return get_selection_options()
+
+
+@router.get(
+    "/recommendations/today",
+    response_model=RecommendationResponse,
+    summary="오늘의 추천",
+)
+def read_today_recommendation() -> RecommendationResponse:
+    return get_today_recommendation()
+
+
+@router.post(
+    "/recommendations",
+    response_model=RecommendationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="점수 기반 동선 추천",
+)
+def recommend_route(request: RecommendationRequest) -> RecommendationResponse:
+    return create_recommendation(request)
 
 @router.post(
     "/ai-recommendations",
