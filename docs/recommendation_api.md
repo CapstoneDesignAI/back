@@ -34,6 +34,41 @@ GET /api/v1/routes/{route_id}
 DELETE /api/v1/routes/{route_id}
 ```
 
+## 한국관광공사 API Key
+
+한국관광공사_국문 관광정보 서비스_GW 인증키는 로컬 `.env`에 아래 이름으로 넣습니다.
+
+```env
+TOUR_API_SERVICE_KEY=발급받은_인증키
+TOUR_API_BASE_URL=https://apis.data.go.kr/B551011/KorService2
+TOUR_API_SERVICE_VERSION=2
+TOUR_API_MOBILE_OS=ETC
+TOUR_API_MOBILE_APP=TRIP_RE
+```
+
+실제 키가 들어간 `.env`는 `.gitignore`에 포함되어 있으므로 커밋하지 않습니다. 팀원에게는 `.env.example`을 기준으로 어떤 값이 필요한지만 공유합니다.
+
+## GET /api/v1/places
+
+장소 후보 데이터를 조회합니다. 기본값은 샘플 데이터이고, `source=tour_api`를 넘기면 한국관광공사 API를 우선 조회합니다.
+
+### Query
+
+| 필드 | 설명 | 기본값 |
+| --- | --- | --- |
+| `region_id` | 조회할 지역 id | `region-danyang` |
+| `source` | 장소 데이터 출처. `sample`, `tour_api`, `auto` | `sample` |
+| `theme` | 테마별 contentTypeId 필터 힌트 | 없음 |
+| `limit` | contentTypeId별 조회 개수 | `20` |
+
+### Example
+
+```text
+GET /api/v1/places?source=tour_api&region_id=region-danyang&theme=food&limit=10
+```
+
+API 키가 없거나 TourAPI 응답이 비어 있으면 기존 단양 샘플 데이터로 fallback됩니다.
+
 ## GET /api/v1/recommendations/today
 
 홈 화면의 `[오늘의 추천]` 카드에서 바로 사용할 수 있는 요약 응답과, 카드를 눌렀을 때 상세 화면으로 넘길 전체 추천 결과를 함께 반환합니다.
@@ -83,7 +118,8 @@ DELETE /api/v1/routes/{route_id}
   "travel_time": "half_day",
   "transport": "walk",
   "companion": "friends",
-  "prefer_ai_region": false
+  "prefer_ai_region": false,
+  "data_source": "sample"
 }
 ```
 
@@ -98,6 +134,7 @@ DELETE /api/v1/routes/{route_id}
 | `transport` | 이동수단 | `walk`, `car`, `public_transport` |
 | `companion` | 동행 | `solo`, `friends`, `family`, `couple` |
 | `prefer_ai_region` | AI 지역 추천 선택 여부 | `true`, `false` |
+| `data_source` | 추천 장소 후보 출처 | `sample`, `tour_api`, `auto` |
 
 ### Response Shape
 
@@ -297,4 +334,4 @@ DELETE /api/v1/routes/{route_id}
 
 ## Data Source
 
-현재 장소 데이터는 `source=sample`인 단양 MVP 샘플 데이터입니다. 한국관광공사 API 적재 이후에도 프론트 응답 구조는 유지하고, 장소 단위 `source`를 `tour_api`로 확장합니다.
+현재 기본 장소 데이터는 `source=sample`인 단양 MVP 샘플 데이터입니다. `data_source=tour_api`로 요청하면 한국관광공사 `areaBasedList2` 응답을 `PlaceCandidate` 구조로 변환해 추천 후보로 사용합니다. TourAPI 조회 실패, API 키 미설정, 결과 없음 상황에서는 기존 샘플 데이터로 fallback됩니다.

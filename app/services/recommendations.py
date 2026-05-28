@@ -31,6 +31,7 @@ from app.services.recommendation_reasoning import (
     build_ai_reason_text,
     generate_ai_reason_detail,
 )
+from app.services.tour_api import fetch_tour_api_places
 
 
 REGIONS = [
@@ -162,8 +163,14 @@ def list_regions(area_group: str | None = None) -> RegionListResponse:
     return RegionListResponse(regions=regions)
 
 
-def list_places(region_id: str | None = None) -> PlaceListResponse:
-    places = list_danyang_mvp_places()
+def list_places(
+    region_id: str | None = None,
+    source: str = "sample",
+    theme: str | None = None,
+    limit: int = 20,
+) -> PlaceListResponse:
+    region = _resolve_region_by_id(region_id) if region_id else REGIONS[0]
+    places = _get_candidate_places(region=region, source=source, theme=theme, limit=limit)
     if region_id:
         places = tuple(place for place in places if place.region_id == region_id)
     return PlaceListResponse(places=[_to_place_item(place) for place in places])
@@ -211,9 +218,14 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
     travel_time_label = _get_option_label(OPTIONS.travel_times, request.travel_time)
     transport_label = _get_option_label(OPTIONS.transports, request.transport)
     companion_label = _get_option_label(OPTIONS.companions, request.companion)
+    candidate_places = _get_candidate_places(
+        region=region,
+        source=request.data_source,
+        theme=request.theme,
+    )
     plan = build_recommendation_plan(
         request=request,
-        candidates=list_danyang_mvp_places(),
+        candidates=candidate_places,
     )
     places = [
         _to_recommended_place(order=index + 1, scored_place=scored_place)
@@ -263,6 +275,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
             summary=summary,
             places=places,
         ),
+        source=_resolve_response_source(candidate_places),
     )
 
 
@@ -396,6 +409,41 @@ def _to_today_card(
         primary_badges=recommendation.route_badges[:3],
         place_preview_names=[place.name for place in recommendation.places[:3]],
     )
+
+
+def _get_candidate_places(
+    region: RegionItem,
+    source: str = "sample",
+    theme: str | None = None,
+    limit: int = 20,
+) -> tuple[PlaceCandidate, ...]:
+    if source in {"tour_api", "auto"}:
+        try:
+            tour_api_places = fetch_tour_api_places(
+                region=region,
+                theme=theme,
+                num_of_rows=limit,
+            )
+        except Exception:
+            tour_api_places = ()
+        if tour_api_places:
+            return tour_api_places
+
+    return list_danyang_mvp_places()
+
+
+def _resolve_response_source(places: tuple[PlaceCandidate, ...]) -> str:
+    if places and all(place.source == "tour_api" for place in places):
+        return "tour_api"
+    return "sample"
+
+
+def _resolve_region_by_id(region_id: str | None) -> RegionItem:
+    if region_id:
+        for region in REGIONS:
+            if region.id == region_id:
+                return region
+    return REGIONS[0]
 
 
 def _resolve_region(request: RecommendationRequest) -> RegionItem:

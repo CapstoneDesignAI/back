@@ -33,8 +33,11 @@ def read_regions(
 @router.get("/places", response_model=PlaceListResponse, summary="MVP 장소 데이터 목록")
 def read_places(
     region_id: str | None = Query(default=None),
+    source: str = Query(default="sample", pattern="^(sample|tour_api|auto)$"),
+    theme: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=50),
 ) -> PlaceListResponse:
-    return list_places(region_id=region_id)
+    return list_places(region_id=region_id, source=source, theme=theme, limit=limit)
 
 
 @router.get(

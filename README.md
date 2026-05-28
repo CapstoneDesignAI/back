@@ -35,7 +35,14 @@ KAKAO_REDIRECT_URI=http://127.0.0.1:8000/api/v1/auth/kakao/callback
 KAKAO_FRONTEND_REDIRECT_URI=http://localhost:8081/auth/callback
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+TOUR_API_SERVICE_KEY=
+TOUR_API_BASE_URL=https://apis.data.go.kr/B551011/KorService2
+TOUR_API_SERVICE_VERSION=2
+TOUR_API_MOBILE_OS=ETC
+TOUR_API_MOBILE_APP=TRIP_RE
 ```
+
+한국관광공사_국문 관광정보 서비스_GW 인증키는 `TOUR_API_SERVICE_KEY`에 넣습니다. 실제 키가 들어간 `.env`는 커밋하지 않고, 공유용 예시는 `.env.example`만 사용합니다.
 
 ## Project Structure
 
@@ -73,7 +80,8 @@ GET /api/v1/users/me
 
 ```text
 GET /api/v1/regions
-GET /api/v1/places
+GET /api/v1/places?source=sample
+GET /api/v1/places?source=tour_api&region_id=region-danyang&theme=food
 GET /api/v1/recommendations/options
 GET /api/v1/recommendations/selection-options
 GET /api/v1/recommendations/today
@@ -122,7 +130,7 @@ DELETE /api/v1/folders/{folder_id}
 -> 추천 히스토리에 저장
 ```
 
-MVP 추천 데이터는 `app/data/danyang_places.py`에 있는 단양 장소 샘플을 사용합니다. 이후 한국관광공사 API 데이터를 수집하면 같은 응답 구조에서 `source=tour_api` 데이터로 확장합니다.
+MVP 추천 데이터는 `app/data/danyang_places.py`에 있는 단양 장소 샘플을 기본으로 사용합니다. 한국관광공사 API 키가 있으면 `GET /api/v1/places?source=tour_api&region_id=region-danyang&theme=food`처럼 실시간 장소 후보를 조회할 수 있고, 추천 요청 body에 `"data_source": "tour_api"`를 넣으면 TourAPI 장소를 우선 사용합니다. API 키가 없거나 결과가 없으면 기존 샘플 데이터로 fallback됩니다.
 
 ## Recommendation Scoring
 
