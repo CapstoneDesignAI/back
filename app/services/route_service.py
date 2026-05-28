@@ -91,3 +91,17 @@ def create_recommended_route(user_id: str, route_data: AIRecommendationResponse)
     except Exception as e:
         print(f"❌ DB 저장 중 에러 발생: {e}")
         return False
+    
+def delete_route(user_id: str, route_id: str) -> bool:
+    supabase = get_supabase()
+    try:
+        result = supabase.table("routes") \
+            .delete() \
+            .eq("id", route_id) \
+            .eq("user_id", user_id) \
+            .execute()
+            
+        return len(result.data) > 0
+    except Exception as e:
+        print(f"❌ 동선 삭제 중 에러 발생: {e}")
+        return False
