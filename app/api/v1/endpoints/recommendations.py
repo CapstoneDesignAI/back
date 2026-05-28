@@ -8,6 +8,7 @@ from app.schemas.recommendations import (
     RecommendationResponse,
     RegionListResponse,
     SelectionOptionsResponse,
+    TodayRecommendationResponse,
 )
 from app.core.jwt import get_current_user  
 from app.services.recommendations import (
@@ -56,10 +57,10 @@ def read_selection_options() -> SelectionOptionsResponse:
 
 @router.get(
     "/recommendations/today",
-    response_model=RecommendationResponse,
+    response_model=TodayRecommendationResponse,
     summary="오늘의 추천",
 )
-def read_today_recommendation() -> RecommendationResponse:
+def read_today_recommendation() -> TodayRecommendationResponse:
     return get_today_recommendation()
 
 

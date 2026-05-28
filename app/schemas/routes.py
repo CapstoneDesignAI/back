@@ -18,8 +18,14 @@ class RouteListItem(BaseModel):
     created_at: str
     place_count: int
 
+class RouteCreateResponse(BaseModel):
+    message: str
+    route_id: str
+
 class RouteDetailResponse(BaseModel):
     route_id: str
     title: str
     created_at: str
+    description: str | None = None
+    tags: list[str] = []
     places: list[RoutePlaceItem]

@@ -1,19 +1,36 @@
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
 from app.data.danyang_places import PlaceCandidate, list_danyang_mvp_places
 from app.schemas.recommendations import (
     OptionItem,
     PlaceItem,
     PlaceListResponse,
+    RecommendedPlace,
     RecommendationOptionsResponse,
     RecommendationRequest,
     RecommendationResponse,
+    RecommendationSavePayload,
+    RecommendationSummary,
     RegionGroupItem,
     RegionItem,
     RegionListResponse,
     RouteRecommendationPlace,
+    RouteMapMarker,
     SelectionModeItem,
     SelectionOptionsResponse,
+    TodayRecommendationCard,
+    TodayRecommendationResponse,
 )
-from app.services.recommendation_scoring import ScoredPlace, build_recommendation_plan
+from app.services.recommendation_scoring import (
+    RecommendationPlan,
+    ScoredPlace,
+    build_recommendation_plan,
+)
+from app.services.recommendation_reasoning import (
+    build_ai_reason_text,
+    generate_ai_reason_detail,
+)
 
 
 REGIONS = [
@@ -168,7 +185,9 @@ def get_selection_options() -> SelectionOptionsResponse:
     )
 
 
-def get_today_recommendation() -> RecommendationResponse:
+def get_today_recommendation(
+    reference_date: date | None = None,
+) -> TodayRecommendationResponse:
     request = RecommendationRequest(
         region_id="region-danyang",
         theme="healing",
@@ -176,11 +195,22 @@ def get_today_recommendation() -> RecommendationResponse:
         transport="car",
         companion="friends",
     )
-    return create_recommendation(request)
+    recommendation = create_recommendation(request)
+    today = reference_date or datetime.now(ZoneInfo("Asia/Seoul")).date()
+
+    return TodayRecommendationResponse(
+        today_date=today.isoformat(),
+        card=_to_today_card(recommendation),
+        recommendation=recommendation,
+    )
 
 
 def create_recommendation(request: RecommendationRequest) -> RecommendationResponse:
     region = _resolve_region(request)
+    theme_label = _get_option_label(OPTIONS.themes, request.theme)
+    travel_time_label = _get_option_label(OPTIONS.travel_times, request.travel_time)
+    transport_label = _get_option_label(OPTIONS.transports, request.transport)
+    companion_label = _get_option_label(OPTIONS.companions, request.companion)
     plan = build_recommendation_plan(
         request=request,
         candidates=list_danyang_mvp_places(),
@@ -189,30 +219,50 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         _to_recommended_place(order=index + 1, scored_place=scored_place)
         for index, scored_place in enumerate(plan.places)
     ]
+    summary = _build_summary(plan)
+    ai_reason_detail = generate_ai_reason_detail(
+        region=region,
+        theme_label=theme_label,
+        transport_label=transport_label,
+        companion_label=companion_label,
+        summary=summary,
+        places=places,
+    )
+    ai_reason = build_ai_reason_text(ai_reason_detail)
 
     return RecommendationResponse(
         recommendation_id=(
             f"sample-{region.id.removeprefix('region-')}-{request.theme}-{request.travel_time}"
         ),
-        title=f"{region.sigungu.replace('군', '')} {_get_option_label(OPTIONS.themes, request.theme)} 로컬 코스",
+        title=f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스",
+        subtitle=f"{region.sido} {region.sigungu}에서 즐기는 {travel_time_label} 여행",
         region=region,
         theme=request.theme,
+        theme_label=theme_label,
         travel_time=request.travel_time,
+        travel_time_label=travel_time_label,
         transport=request.transport,
+        transport_label=transport_label,
         companion=request.companion,
+        companion_label=companion_label,
         contribution_score=plan.contribution_score,
         estimated_duration_minutes=plan.estimated_duration_minutes,
         estimated_cost_min=plan.estimated_cost_min,
         estimated_cost_max=plan.estimated_cost_max,
         local_consumption_count=plan.local_consumption_count,
-        ai_reason=(
-            f"이 코스는 {region.sigungu}의 장소를 "
-            f"{_get_option_label(OPTIONS.themes, request.theme)} 테마와 "
-            f"{_get_option_label(OPTIONS.transports, request.transport)} 이동수단에 맞춰 "
-            "점수화한 뒤 구성했습니다. 지역 기여도가 높은 장소와 로컬 소비 장소를 "
-            "함께 포함해 여행 만족도와 지역 상권 기여를 동시에 높이도록 설계했습니다."
-        ),
+        place_count=len(places),
+        total_stay_minutes=sum(place.stay_minutes for place in places),
+        route_badges=_build_route_badges(plan, theme_label),
+        summary=summary,
+        ai_reason=ai_reason,
+        ai_reason_detail=ai_reason_detail,
         places=places,
+        map_markers=[_to_map_marker(place) for place in places],
+        legacy_route_payload=_to_legacy_route_payload(
+            title=f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스",
+            summary=summary,
+            places=places,
+        ),
     )
 
 
@@ -247,6 +297,7 @@ def _to_recommended_place(
     place = scored_place.place
     return RouteRecommendationPlace(
         order=order,
+        visit_order=order,
         place_id=place.place_id,
         name=place.name,
         category=place.category,
@@ -261,10 +312,89 @@ def _to_recommended_place(
         estimated_cost_max=place.estimated_cost_max,
         local_contribution_score=place.local_contribution_score,
         theme_tags=list(place.theme_tags),
+        tags=list(place.theme_tags),
         is_local_consumption=place.is_local_consumption,
         recommendation_score=scored_place.score,
         score_reasons=list(scored_place.score_reasons),
         source=place.source,
+    )
+
+
+def _build_summary(plan: RecommendationPlan) -> RecommendationSummary:
+    return RecommendationSummary(
+        contribution_label=f"지역 기여도 {plan.contribution_score}점",
+        duration_text=_format_duration(plan.estimated_duration_minutes),
+        cost_range_text=f"{plan.estimated_cost_min:,}원~{plan.estimated_cost_max:,}원",
+        local_consumption_text=f"로컬 소비 장소 {plan.local_consumption_count}곳 포함",
+    )
+
+
+def _build_route_badges(plan: RecommendationPlan, theme_label: str) -> list[str]:
+    badges = [theme_label, f"지역 기여도 {plan.contribution_score}점"]
+    if plan.local_consumption_count:
+        badges.append(f"로컬 소비 {plan.local_consumption_count}곳")
+    if plan.estimated_duration_minutes <= 180:
+        badges.append("짧은 코스")
+    elif plan.estimated_duration_minutes <= 360:
+        badges.append("반나절 코스")
+    else:
+        badges.append("여유 코스")
+    return badges
+
+
+def _to_legacy_route_payload(
+    title: str,
+    summary: RecommendationSummary,
+    places: list[RouteRecommendationPlace],
+) -> RecommendationSavePayload:
+    return RecommendationSavePayload(
+        title=title,
+        estimated_time=f"총 예상 소요 시간: {summary.duration_text}",
+        places=[
+            RecommendedPlace(
+                visit_order=place.visit_order,
+                place_id=place.place_id,
+                name=place.name,
+                address=place.address,
+                lat=place.lat,
+                lng=place.lng,
+                image_url=place.image_url or "",
+                description=place.reason,
+                tags=place.tags,
+                category=place.category,
+            )
+            for place in places
+        ],
+    )
+
+
+def _to_map_marker(place: RouteRecommendationPlace) -> RouteMapMarker:
+    return RouteMapMarker(
+        order=place.order,
+        place_id=place.place_id,
+        name=place.name,
+        category=place.category,
+        lat=place.lat,
+        lng=place.lng,
+    )
+
+
+def _to_today_card(
+    recommendation: RecommendationResponse,
+) -> TodayRecommendationCard:
+    region_label = f"{recommendation.region.sido} {recommendation.region.sigungu}"
+    return TodayRecommendationCard(
+        recommendation_id=recommendation.recommendation_id,
+        title=recommendation.title,
+        subtitle=recommendation.subtitle,
+        region_label=region_label,
+        theme_label=recommendation.theme_label,
+        contribution_score=recommendation.contribution_score,
+        estimated_duration_text=recommendation.summary.duration_text,
+        estimated_cost_text=recommendation.summary.cost_range_text,
+        local_consumption_text=recommendation.summary.local_consumption_text,
+        primary_badges=recommendation.route_badges[:3],
+        place_preview_names=[place.name for place in recommendation.places[:3]],
     )
 
 
@@ -300,4 +430,13 @@ def _get_option_label(options: list[OptionItem], code: str) -> str:
         if option.code == code:
             return option.label
     return code
+
+
+def _format_duration(minutes: int) -> str:
+    hours, remaining_minutes = divmod(minutes, 60)
+    if hours and remaining_minutes:
+        return f"{hours}시간 {remaining_minutes}분"
+    if hours:
+        return f"{hours}시간"
+    return f"{remaining_minutes}분"
 
