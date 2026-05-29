@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from app.schemas.routes import RouteListItem, RouteDetailResponse
+from app.schemas.routes import RouteCreateResponse, RouteListItem, RouteDetailResponse
 from app.services.route_service import get_routes, get_route_detail, create_recommended_route, delete_route
 from app.core.jwt import get_current_user 
-from app.schemas.recommendations import AIRecommendationResponse
+from app.schemas.recommendations import RecommendationSavePayload
 
 router = APIRouter(prefix="/routes")
 
@@ -17,17 +17,25 @@ def read_route_detail(route_id: str):
         raise HTTPException(status_code=404, detail="동선을 찾을 수 없습니다.")
     return result
 
-@router.post("", status_code=status.HTTP_201_CREATED, summary="추천받은 동선 저장하기")
+@router.post(
+    "",
+    response_model=RouteCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="추천받은 동선 저장하기",
+)
 def save_recommended_route(
-    request_data: AIRecommendationResponse,
+    request_data: RecommendationSavePayload,
     user_id: str = Depends(get_current_user)
-):
-    success = create_recommended_route(user_id, request_data)
+) -> RouteCreateResponse:
+    route_id = create_recommended_route(user_id, request_data)
     
-    if not success:
+    if not route_id:
         raise HTTPException(status_code=500, detail="동선을 DB에 저장하는 데 실패했습니다.")
 
-    return {"message": "동선이 성공적으로 저장되었습니다."}
+    return RouteCreateResponse(
+        message="동선이 성공적으로 저장되었습니다.",
+        route_id=route_id,
+    )
 
 @router.delete("/{route_id}", summary="저장한 동선 삭제")
 def remove_route(

@@ -1,6 +1,6 @@
 from app.db.base import get_supabase
 from app.schemas.routes import RouteListItem, RouteDetailResponse
-from app.schemas.recommendations import AIRecommendationResponse
+from app.schemas.recommendations import RecommendationSavePayload
 
 def get_routes(user_id: str) -> list[RouteListItem]:
     supabase = get_supabase()
@@ -61,13 +61,13 @@ def get_route_detail(route_id: str) -> RouteDetailResponse:
         "places": formatted_places
     }
 
-def create_recommended_route(user_id: str, route_data: AIRecommendationResponse) -> bool:
+def create_recommended_route(user_id: str, route_data: RecommendationSavePayload) -> str | None:
     supabase = get_supabase()
     
     try:
         route_insert_result = supabase.table("routes").insert({
             "user_id": user_id,
-            "title": route_data.title
+            "title": route_data.title,
         }).execute()
         
         inserted_route = route_insert_result.data[0]
@@ -86,11 +86,11 @@ def create_recommended_route(user_id: str, route_data: AIRecommendationResponse)
         if places_to_insert:
             supabase.table("route_places").insert(places_to_insert).execute()
             
-        return True
+        return str(new_route_id)
         
     except Exception as e:
         print(f"❌ DB 저장 중 에러 발생: {e}")
-        return False
+        return None
     
 def delete_route(user_id: str, route_id: str) -> bool:
     supabase = get_supabase()
