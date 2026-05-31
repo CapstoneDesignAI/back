@@ -4,12 +4,20 @@ from app.schemas.stamps import StampBoardResponse
 def get_user_stamp_board(user_id: str, region_id: str) -> StampBoardResponse:
     supabase = get_supabase()
     
+    region_res = supabase.table("regions") \
+        .select("name") \
+        .eq("id", region_id) \
+        .single() \
+        .execute()
+        
+    region_name = region_res.data.get("name") if region_res.data else "알 수 없는 지역"
+    
     wallet_res = supabase.table("user_region_stamps") \
         .select("collected_stamps") \
         .eq("user_id", user_id) \
         .eq("region_id", region_id) \
         .execute()
-        
+    
     collected = 0
     if wallet_res.data:
         collected = wallet_res.data[0]["collected_stamps"]
@@ -25,6 +33,7 @@ def get_user_stamp_board(user_id: str, region_id: str) -> StampBoardResponse:
         
     return StampBoardResponse(
         region_id=region_id,
+        region_name=region_name,
         collected_stamps=collected,
         total_stamps=10,
         next_reward_text=next_text
