@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class MissionListItem(BaseModel):
     mission_id: str
@@ -21,3 +22,13 @@ class MissionDetailResponse(BaseModel):
     lng: float
     
     is_completed: bool
+    
+class MissionVerifyRequest(BaseModel):
+    latitude: float
+    longitude: float
+    image_url: Optional[str] = None
+
+class MissionVerifyResponse(BaseModel):
+    message: str
+    user_mission_id: str
+    status: str
