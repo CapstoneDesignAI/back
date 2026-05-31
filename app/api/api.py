@@ -8,6 +8,7 @@ from app.api.v1.endpoints.folders import router as folders_router
 from app.api.v1.endpoints.recommendations import router as recommendations_router
 from app.api.v1.endpoints.missions import router as missions_router
 from app.api.v1.endpoints.stamps import router as stamps_router
+from app.api.v1.endpoints.emblems import router as emblems_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router, tags=["auth"])
@@ -18,3 +19,4 @@ api_router.include_router(folders_router, tags=["folders"])
 api_router.include_router(recommendations_router, tags=["ai-recommendations"])
 api_router.include_router(missions_router, tags=["missions"])
 api_router.include_router(stamps_router, tags=["stamps"])
+api_router.include_router(emblems_router, tags=["emblems"])
