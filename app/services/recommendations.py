@@ -13,6 +13,7 @@ from app.schemas.recommendations import (
     RecommendedPlace,
     RecommendationOptionsResponse,
     RecommendationCard,
+    RecommendationDetailResponse,
     RecommendationPlacePreview,
     RecommendationRequest,
     RecommendationResponse,
@@ -215,8 +216,12 @@ def get_today_recommendation(
 
     return TodayRecommendationResponse(
         today_date=today.isoformat(),
+        section_title="오늘의 추천 여행",
+        recommendation_id=recommendation.recommendation_id,
+        route_id=recommendation.route_id,
+        detail_api_path=f"/api/v1/ai-recommendations/{recommendation.route_id}",
         card=_to_today_card(recommendation),
-        recommendation=recommendation,
+        recommendation=_to_detail_response(recommendation),
     )
 
 
@@ -747,6 +752,14 @@ def _to_today_card(
     recommendation: RecommendationResponse,
 ) -> TodayRecommendationCard:
     return TodayRecommendationCard.model_validate(recommendation.card.model_dump())
+
+
+def _to_detail_response(
+    recommendation: RecommendationResponse,
+) -> RecommendationDetailResponse:
+    return RecommendationDetailResponse.model_validate(
+        recommendation.model_dump(exclude={"card"})
+    )
 
 
 def _build_recommendation_id(

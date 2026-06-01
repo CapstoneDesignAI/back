@@ -8,6 +8,13 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
     data = response.model_dump()
 
     assert data["today_date"] == "2026-05-28"
+    assert data["section_title"] == "오늘의 추천 여행"
+    assert data["recommendation_id"] == "sample-danyang-healing-half_day"
+    assert data["route_id"] == "route-danyang-healing-half_day-car-friends"
+    assert (
+        data["detail_api_path"]
+        == "/api/v1/ai-recommendations/route-danyang-healing-half_day-car-friends"
+    )
     assert data["card"] == {
         "recommendation_id": "sample-danyang-healing-half_day",
         "route_id": "route-danyang-healing-half_day-car-friends",
@@ -74,6 +81,9 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
         "ai_reason_summary": data["recommendation"]["ai_reason"][:80],
     }
 
-    assert data["recommendation"]["card"] == data["card"]
+    assert "card" not in data["recommendation"]
+    assert data["recommendation"]["recommendation_id"] == data["recommendation_id"]
+    assert data["recommendation"]["route_id"] == data["route_id"]
+    assert data["recommendation"]["title"] == data["card"]["title"]
     assert data["recommendation"]["legacy_route_payload"]["title"] == data["card"]["title"]
     assert data["recommendation"]["map_markers"][0]["name"] == "도담삼봉"
