@@ -25,10 +25,6 @@ from app.schemas.recommendations import (
     RegionStory,
     RouteRecommendationPlace,
     RouteLeg,
-<<<<<<< HEAD
-=======
-    RouteMapMarker,
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     SelectionModeItem,
     SelectionOptionsResponse,
     TodayRecommendationCard,
@@ -279,10 +275,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         _to_recommended_place(order=index + 1, scored_place=scored_place)
         for index, scored_place in enumerate(plan.places)
     ]
-<<<<<<< HEAD
     _apply_image_fallbacks(region=region, places=places)
-=======
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     route_legs = _build_route_legs(places)
     total_distance_meters = sum(leg.distance_meters for leg in route_legs)
     mobility = _build_mobility_info(
@@ -378,10 +371,6 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         ai_reason_detail=ai_reason_detail,
         places=places,
         route_legs=route_legs,
-<<<<<<< HEAD
-=======
-        map_markers=[_to_map_marker(place) for place in places],
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
             summary=summary,
@@ -598,108 +587,6 @@ def _build_mobility_info(
     )
 
 
-<<<<<<< HEAD
-=======
-def _build_route_legs(places: list[RouteRecommendationPlace]) -> list[RouteLeg]:
-    route_legs: list[RouteLeg] = []
-    if not places:
-        return route_legs
-
-    places[0].distance_from_previous_meters = None
-    places[0].distance_from_previous_km = None
-    places[0].distance_from_previous_text = None
-
-    for index in range(1, len(places)):
-        previous_place = places[index - 1]
-        current_place = places[index]
-        distance_meters = round(
-            calculate_distance_in_meters(
-                previous_place.lat,
-                previous_place.lng,
-                current_place.lat,
-                current_place.lng,
-            )
-        )
-        distance_km = _to_distance_km(distance_meters)
-        distance_text = _format_distance(distance_meters)
-
-        current_place.distance_from_previous_meters = distance_meters
-        current_place.distance_from_previous_km = distance_km
-        current_place.distance_from_previous_text = distance_text
-        route_legs.append(
-            RouteLeg(
-                order=index,
-                from_place_id=previous_place.place_id,
-                from_name=previous_place.name,
-                to_place_id=current_place.place_id,
-                to_name=current_place.name,
-                distance_meters=distance_meters,
-                distance_km=distance_km,
-                distance_text=distance_text,
-            )
-        )
-
-    return route_legs
-
-
-def _build_mobility_info(
-    *,
-    transport: str,
-    transport_label: str,
-    total_distance_meters: int,
-    route_legs: list[RouteLeg],
-) -> MobilityInfo:
-    max_leg_distance = max((leg.distance_meters for leg in route_legs), default=0)
-
-    if transport == "walk":
-        if total_distance_meters <= 2500 and max_leg_distance <= 1200:
-            level = "low"
-            label = "이동 난이도 낮음"
-            summary = "주요 장소 간 거리가 짧아 뚜벅이 이동으로도 부담이 적은 코스입니다."
-        elif total_distance_meters <= 6000 and max_leg_distance <= 3000:
-            level = "medium"
-            label = "이동 난이도 보통"
-            summary = "일부 구간 이동 거리가 있어 도보와 짧은 대중교통 이동을 함께 고려하면 좋습니다."
-        else:
-            level = "high"
-            label = "이동 난이도 높음"
-            summary = "장소 사이 거리가 길어 전체 코스를 도보로만 이동하기에는 부담이 큰 코스입니다."
-    elif transport == "public_transport":
-        if max_leg_distance <= 1500:
-            level = "low"
-            label = "이동 난이도 낮음"
-            summary = "장소 간 이동 거리가 짧아 대중교통과 짧은 도보를 함께 쓰기 좋은 코스입니다."
-        elif max_leg_distance <= 5000:
-            level = "medium"
-            label = "이동 난이도 보통"
-            summary = "대중교통 이용은 가능하지만 일부 구간은 환승이나 도보 이동을 고려해야 합니다."
-        else:
-            level = "high"
-            label = "이동 난이도 높음"
-            summary = "장소 간 거리가 길어 대중교통만으로는 이동 부담이 있을 수 있습니다."
-    else:
-        if total_distance_meters <= 12000:
-            level = "low"
-            label = "이동 난이도 낮음"
-            summary = "자차 기준으로 장소 간 이동 부담이 크지 않은 코스입니다."
-        elif total_distance_meters <= 30000:
-            level = "medium"
-            label = "이동 난이도 보통"
-            summary = "자차 이동을 전제로 하면 무리 없이 소화할 수 있는 거리의 코스입니다."
-        else:
-            level = "high"
-            label = "이동 난이도 높음"
-            summary = "자차 기준으로도 이동 거리가 긴 편이라 여유 있는 일정이 필요합니다."
-
-    return MobilityInfo(
-        level=level,
-        label=label,
-        summary=summary,
-        recommended_transport=transport_label,
-    )
-
-
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
 def _build_contribution_info(
     *,
     plan: RecommendationPlan,
@@ -840,11 +727,7 @@ def _build_recommendation_card(
         region_label=f"{region.sido} {region.sigungu}",
         theme_label=theme_label,
         region_story=region_story,
-<<<<<<< HEAD
         thumbnail_url=thumbnail_url,
-=======
-        thumbnail_url=next((place.image_url for place in places if place.image_url), None),
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
         contribution_score=plan.contribution_score,
         contribution_info=contribution_info,
         estimated_duration_text=summary.duration_text,
@@ -852,11 +735,7 @@ def _build_recommendation_card(
         local_consumption_text=summary.local_consumption_text,
         local_consumption_points=local_consumption_points,
         mobility=mobility,
-<<<<<<< HEAD
         tags=_build_card_tags(
-=======
-        primary_badges=_build_primary_badges(
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
             theme_label=theme_label,
             travel_time_label=travel_time_label,
             transport_label=transport_label,
@@ -1147,7 +1026,3 @@ def _format_distance(distance_meters: int) -> str:
     if distance_meters < 1000:
         return f"{distance_meters}m"
     return f"{_to_distance_km(distance_meters):.1f}km"
-<<<<<<< HEAD
-=======
-
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)

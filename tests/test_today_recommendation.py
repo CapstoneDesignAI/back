@@ -28,11 +28,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
         "region_label": "충청북도 단양군",
         "theme_label": "힐링",
         "region_story": data["recommendation"]["region_story"],
-<<<<<<< HEAD
         "thumbnail_url": fallback_image_url,
-=======
-        "thumbnail_url": None,
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
         "contribution_score": data["recommendation"]["contribution_score"],
         "contribution_info": data["recommendation"]["contribution_info"],
         "estimated_duration_text": data["recommendation"]["summary"]["duration_text"],
@@ -40,11 +36,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
         "local_consumption_text": data["recommendation"]["summary"]["local_consumption_text"],
         "local_consumption_points": data["recommendation"]["local_consumption_points"],
         "mobility": data["recommendation"]["mobility"],
-<<<<<<< HEAD
         "tags": ["힐링", "반나절", "자차"],
-=======
-        "primary_badges": ["힐링", "반나절", "자차"],
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
         "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
         "place_count": 4,
         "place_count_text": "장소 4곳",

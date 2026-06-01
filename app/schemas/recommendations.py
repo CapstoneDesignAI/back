@@ -577,3 +577,5 @@ class TodayRecommendationResponse(BaseModel):
     save_api_path: str
     card: TodayRecommendationCard
     recommendation: RecommendationDetailResponse
+
+    recommendation: RecommendationDetailResponse
