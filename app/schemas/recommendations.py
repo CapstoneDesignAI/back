@@ -1,8 +1,9 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # 선택지 정의
 class DurationType(str, Enum):
+    THREE_HOURS = "3시간"
     SHORT = "1~2시간"
     HALF_DAY = "반나절"
     ONE_DAY = "하루"
@@ -13,16 +14,21 @@ class DurationType(str, Enum):
 class TransportType(str, Enum):
     PUBLIC = "대중교통"
     CAR = "자차"
+    WALKER = "뚜벅이"
     WALK = "도보"
     BIKE = "자전거"
 
 class PurposeType(str, Enum):
     HEALING = "힐링"
+    FOOD = "맛집"
     DATE = "데이트"
     TRENDY = "인스타감성"
     NATURE = "자연/풍경"
+    NATURE_TOUR = "자연투어"
     LOCAL = "현지경험"
+    LOCAL_MARKET = "로컬시장"
     HISTORIC = "역사/문화"
+    REVITALIZATION = "지역활성화 추천"
 
 class CompanionType(str, Enum):
     ALONE = "혼자"
@@ -45,6 +51,148 @@ class ActivityStyle(str, Enum):
     DYNAMIC = "액티비티/활동적"
     STATIC = "정적/잔잔함"
 
+
+REGION_ID_ALIASES = {
+    "단양": "region-danyang",
+    "단양군": "region-danyang",
+    "충청북도 단양군": "region-danyang",
+    "옥천": "region-okcheon",
+    "옥천군": "region-okcheon",
+    "괴산": "region-goesan",
+    "괴산군": "region-goesan",
+    "영동": "region-yeongdong",
+    "영동군": "region-yeongdong",
+    "보은": "region-boeun",
+    "보은군": "region-boeun",
+    "제천": "region-jecheon",
+    "제천시": "region-jecheon",
+    "부여": "region-buyeo",
+    "부여군": "region-buyeo",
+    "서천": "region-seocheon",
+    "서천군": "region-seocheon",
+    "청양": "region-cheongyang",
+    "청양군": "region-cheongyang",
+    "태안": "region-taean",
+    "태안군": "region-taean",
+}
+
+AREA_GROUP_ALIASES = {
+    "강원권": "gangwon",
+    "충청권": "chungcheong",
+    "전라권": "jeolla",
+    "경상권": "gyeongsang",
+    "수도권 근교": "near_capital",
+}
+
+THEME_ALIASES = {
+    "힐링": "healing",
+    "맛집": "food",
+    "뚜벅이": "walk",
+    "도보": "walk",
+    "자연투어": "nature",
+    "자연/풍경": "nature",
+    "로컬시장": "local_market",
+    "현지경험": "local_market",
+    "역사/문화": "revitalization",
+    "지역활성화 추천": "revitalization",
+}
+
+TRAVEL_TIME_ALIASES = {
+    "3시간": "3hours",
+    "1~2시간": "3hours",
+    "반나절": "half_day",
+    "하루": "full_day",
+    "1박2일": "overnight",
+    "1박 2일": "overnight",
+    "2박3일": "overnight",
+    "기타": "half_day",
+}
+
+TRANSPORT_ALIASES = {
+    "뚜벅이": "walk",
+    "도보": "walk",
+    "자차": "car",
+    "대중교통": "public_transport",
+    "자전거": "walk",
+}
+
+COMPANION_ALIASES = {
+    "혼자": "solo",
+    "친구": "friends",
+    "연인": "couple",
+    "가족": "family",
+    "부모님": "family",
+    "아이와 함께": "family",
+    "반려동물과 함께": "friends",
+    "동아리/단체": "friends",
+}
+
+AI_DURATION_ALIASES = {
+    "3hours": "3시간",
+    "3시간": "3시간",
+    "1~2시간": "1~2시간",
+    "half_day": "반나절",
+    "반나절": "반나절",
+    "full_day": "하루",
+    "하루": "하루",
+    "overnight": "1박2일",
+    "1박2일": "1박2일",
+    "1박 2일": "1박2일",
+    "2박3일": "2박3일",
+    "기타": "기타",
+}
+
+AI_TRANSPORT_ALIASES = {
+    "walk": "뚜벅이",
+    "뚜벅이": "뚜벅이",
+    "도보": "도보",
+    "car": "자차",
+    "자차": "자차",
+    "public_transport": "대중교통",
+    "대중교통": "대중교통",
+    "자전거": "자전거",
+}
+
+AI_PURPOSE_ALIASES = {
+    "healing": "힐링",
+    "힐링": "힐링",
+    "food": "맛집",
+    "맛집": "맛집",
+    "데이트": "데이트",
+    "인스타감성": "인스타감성",
+    "nature": "자연투어",
+    "자연투어": "자연투어",
+    "자연/풍경": "자연/풍경",
+    "local_market": "로컬시장",
+    "로컬시장": "로컬시장",
+    "현지경험": "현지경험",
+    "revitalization": "지역활성화 추천",
+    "지역활성화 추천": "지역활성화 추천",
+    "역사/문화": "역사/문화",
+}
+
+AI_COMPANION_ALIASES = {
+    "solo": "혼자",
+    "혼자": "혼자",
+    "friends": "친구",
+    "친구": "친구",
+    "couple": "연인",
+    "연인": "연인",
+    "family": "가족",
+    "가족": "가족",
+    "부모님": "부모님",
+    "아이와 함께": "아이와 함께",
+    "반려동물과 함께": "반려동물과 함께",
+    "동아리/단체": "동아리/단체",
+}
+
+
+def _normalize_text_alias(value, aliases: dict[str, str]):
+    if isinstance(value, str):
+        stripped_value = value.strip()
+        return aliases.get(stripped_value, stripped_value)
+    return value
+
 class AIRecommendationRequest(BaseModel):
     duration: DurationType = Field(..., description="여행 소요 시간")
     transportation: TransportType = Field(..., description="이동 수단")
@@ -53,6 +201,26 @@ class AIRecommendationRequest(BaseModel):
     atmosphere: AtmosphereType | None = Field(None, description="선호 분위기")
     activity_style: ActivityStyle | None = Field(None, description="활동 스타일")
     region: str | None = Field(None, description="여행 목적지")
+
+    @field_validator("duration", mode="before")
+    @classmethod
+    def normalize_duration(cls, value):
+        return _normalize_text_alias(value, AI_DURATION_ALIASES)
+
+    @field_validator("transportation", mode="before")
+    @classmethod
+    def normalize_transportation(cls, value):
+        return _normalize_text_alias(value, AI_TRANSPORT_ALIASES)
+
+    @field_validator("travel_purpose", mode="before")
+    @classmethod
+    def normalize_travel_purpose(cls, value):
+        return _normalize_text_alias(value, AI_PURPOSE_ALIASES)
+
+    @field_validator("companion", mode="before")
+    @classmethod
+    def normalize_companion(cls, value):
+        return _normalize_text_alias(value, AI_COMPANION_ALIASES)
 
 class RecommendedPlace(BaseModel):
     visit_order: int
@@ -122,6 +290,36 @@ class RecommendationRequest(BaseModel):
     companion: str = Field(..., examples=["friends"])
     prefer_ai_region: bool = False
     data_source: str = Field(default="sample", examples=["sample", "tour_api"])
+
+    @field_validator("region_id", mode="before")
+    @classmethod
+    def normalize_region_id(cls, value):
+        return _normalize_text_alias(value, REGION_ID_ALIASES)
+
+    @field_validator("area_group", mode="before")
+    @classmethod
+    def normalize_area_group(cls, value):
+        return _normalize_text_alias(value, AREA_GROUP_ALIASES)
+
+    @field_validator("theme", mode="before")
+    @classmethod
+    def normalize_theme(cls, value):
+        return _normalize_text_alias(value, THEME_ALIASES)
+
+    @field_validator("travel_time", mode="before")
+    @classmethod
+    def normalize_travel_time(cls, value):
+        return _normalize_text_alias(value, TRAVEL_TIME_ALIASES)
+
+    @field_validator("transport", mode="before")
+    @classmethod
+    def normalize_transport(cls, value):
+        return _normalize_text_alias(value, TRANSPORT_ALIASES)
+
+    @field_validator("companion", mode="before")
+    @classmethod
+    def normalize_recommendation_companion(cls, value):
+        return _normalize_text_alias(value, COMPANION_ALIASES)
 
 
 class PlaceItem(BaseModel):
@@ -206,22 +404,44 @@ class AIReasonDetail(BaseModel):
     generation_source: str
 
 
-class TodayRecommendationCard(BaseModel):
+class RecommendationPlacePreview(BaseModel):
+    order: int
+    place_id: str
+    name: str
+    category: str
+
+
+class RecommendationCard(BaseModel):
     recommendation_id: str
+    route_id: str
     title: str
     subtitle: str
+    summary: str
+    sido: str
+    sigungu: str
     region_label: str
     theme_label: str
+    thumbnail_url: str | None = None
     contribution_score: int
     estimated_duration_text: str
     estimated_cost_text: str
     local_consumption_text: str
     primary_badges: list[str]
+    place_count: int
+    place_count_text: str
     place_preview_names: list[str]
+    place_preview: list[RecommendationPlacePreview]
+    route_preview_text: str
+    ai_reason_summary: str
+
+
+class TodayRecommendationCard(RecommendationCard):
+    pass
 
 
 class RecommendationResponse(BaseModel):
     recommendation_id: str
+    route_id: str
     title: str
     subtitle: str
     region: RegionItem
@@ -242,6 +462,7 @@ class RecommendationResponse(BaseModel):
     total_stay_minutes: int
     route_badges: list[str]
     summary: RecommendationSummary
+    card: RecommendationCard
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
