@@ -8,6 +8,8 @@ from app.schemas.recommendations import (
     PlaceListResponse,
     RecommendedPlace,
     RecommendationOptionsResponse,
+    RecommendationCard,
+    RecommendationPlacePreview,
     RecommendationRequest,
     RecommendationResponse,
     RecommendationSavePayload,
@@ -241,13 +243,37 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         places=places,
     )
     ai_reason = build_ai_reason_text(ai_reason_detail)
+    recommendation_id = _build_recommendation_id(
+        region=region,
+        theme=request.theme,
+        travel_time=request.travel_time,
+    )
+    route_id = _build_route_id(
+        region=region,
+        theme=request.theme,
+        travel_time=request.travel_time,
+    )
+    title = f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스"
+    card = _build_recommendation_card(
+        recommendation_id=recommendation_id,
+        route_id=route_id,
+        title=title,
+        subtitle=f"{region.sido} {region.sigungu}에서 즐기는 {travel_time_label} 여행",
+        region=region,
+        theme_label=theme_label,
+        travel_time_label=travel_time_label,
+        transport_label=transport_label,
+        plan=plan,
+        summary=summary,
+        ai_reason=ai_reason,
+        places=places,
+    )
 
     return RecommendationResponse(
-        recommendation_id=(
-            f"sample-{region.id.removeprefix('region-')}-{request.theme}-{request.travel_time}"
-        ),
-        title=f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스",
-        subtitle=f"{region.sido} {region.sigungu}에서 즐기는 {travel_time_label} 여행",
+        recommendation_id=recommendation_id,
+        route_id=route_id,
+        title=title,
+        subtitle=card.subtitle,
         region=region,
         theme=request.theme,
         theme_label=theme_label,
@@ -266,12 +292,13 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         total_stay_minutes=sum(place.stay_minutes for place in places),
         route_badges=_build_route_badges(plan, theme_label),
         summary=summary,
+        card=card,
         ai_reason=ai_reason,
         ai_reason_detail=ai_reason_detail,
         places=places,
         map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
-            title=f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스",
+            title=title,
             summary=summary,
             places=places,
         ),
@@ -392,23 +419,98 @@ def _to_map_marker(place: RouteRecommendationPlace) -> RouteMapMarker:
     )
 
 
+def _build_recommendation_card(
+    *,
+    recommendation_id: str,
+    route_id: str,
+    title: str,
+    subtitle: str,
+    region: RegionItem,
+    theme_label: str,
+    travel_time_label: str,
+    transport_label: str,
+    plan: RecommendationPlan,
+    summary: RecommendationSummary,
+    ai_reason: str,
+    places: list[RouteRecommendationPlace],
+) -> RecommendationCard:
+    preview_places = places[:3]
+    route_preview_text = _build_route_preview_text(preview_places)
+    return RecommendationCard(
+        recommendation_id=recommendation_id,
+        route_id=route_id,
+        title=title,
+        subtitle=subtitle,
+        summary=_build_card_summary(region=region, places=places),
+        sido=region.sido,
+        sigungu=region.sigungu,
+        region_label=f"{region.sido} {region.sigungu}",
+        theme_label=theme_label,
+        thumbnail_url=next((place.image_url for place in places if place.image_url), None),
+        contribution_score=plan.contribution_score,
+        estimated_duration_text=summary.duration_text,
+        estimated_cost_text=summary.cost_range_text,
+        local_consumption_text=summary.local_consumption_text,
+        primary_badges=[theme_label, travel_time_label, transport_label],
+        place_count=len(places),
+        place_count_text=f"장소 {len(places)}곳",
+        place_preview_names=[place.name for place in preview_places],
+        place_preview=[
+            RecommendationPlacePreview(
+                order=place.order,
+                place_id=place.place_id,
+                name=place.name,
+                category=place.category,
+            )
+            for place in preview_places
+        ],
+        route_preview_text=route_preview_text,
+        ai_reason_summary=ai_reason[:80],
+    )
+
+
 def _to_today_card(
     recommendation: RecommendationResponse,
 ) -> TodayRecommendationCard:
-    region_label = f"{recommendation.region.sido} {recommendation.region.sigungu}"
-    return TodayRecommendationCard(
-        recommendation_id=recommendation.recommendation_id,
-        title=recommendation.title,
-        subtitle=recommendation.subtitle,
-        region_label=region_label,
-        theme_label=recommendation.theme_label,
-        contribution_score=recommendation.contribution_score,
-        estimated_duration_text=recommendation.summary.duration_text,
-        estimated_cost_text=recommendation.summary.cost_range_text,
-        local_consumption_text=recommendation.summary.local_consumption_text,
-        primary_badges=recommendation.route_badges[:3],
-        place_preview_names=[place.name for place in recommendation.places[:3]],
-    )
+    return TodayRecommendationCard.model_validate(recommendation.card.model_dump())
+
+
+def _build_recommendation_id(
+    *,
+    region: RegionItem,
+    theme: str,
+    travel_time: str,
+) -> str:
+    region_slug = region.id.removeprefix("region-")
+    return f"sample-{region_slug}-{theme}-{travel_time}"
+
+
+def _build_route_id(
+    *,
+    region: RegionItem,
+    theme: str,
+    travel_time: str,
+) -> str:
+    region_slug = region.id.removeprefix("region-")
+    return f"route-{region_slug}-{theme}-{travel_time}"
+
+
+def _build_card_summary(
+    *,
+    region: RegionItem,
+    places: list[RouteRecommendationPlace],
+) -> str:
+    if len(places) >= 2:
+        return f"{places[0].name}부터 {places[-1].name}까지 이어지는 로컬 동선"
+    if places:
+        return f"{region.sigungu}의 {places[0].name}을 중심으로 즐기는 로컬 동선"
+    return f"{region.sigungu}에서 즐기는 로컬 동선"
+
+
+def _build_route_preview_text(places: list[RouteRecommendationPlace]) -> str:
+    if not places:
+        return "추천 장소 준비 중"
+    return " → ".join(place.name for place in places)
 
 
 def _get_candidate_places(
