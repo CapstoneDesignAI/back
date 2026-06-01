@@ -409,6 +409,12 @@ class RecommendationPlacePreview(BaseModel):
     place_id: str
     name: str
     category: str
+    summary: str
+    tags: list[str]
+    image_url: str | None = None
+    lat: float
+    lng: float
+    is_local_consumption: bool
 
 
 class RecommendationCard(BaseModel):
@@ -427,6 +433,7 @@ class RecommendationCard(BaseModel):
     estimated_cost_text: str
     local_consumption_text: str
     primary_badges: list[str]
+    metric_badges: list[str]
     place_count: int
     place_count_text: str
     place_preview_names: list[str]
@@ -445,6 +452,8 @@ class RecommendationResponse(BaseModel):
     title: str
     subtitle: str
     region: RegionItem
+    sido: str
+    sigungu: str
     theme: str
     theme_label: str
     travel_time: str
@@ -463,6 +472,40 @@ class RecommendationResponse(BaseModel):
     route_badges: list[str]
     summary: RecommendationSummary
     card: RecommendationCard
+    ai_reason: str
+    ai_reason_detail: AIReasonDetail
+    places: list[RouteRecommendationPlace]
+    map_markers: list[RouteMapMarker]
+    legacy_route_payload: RecommendationSavePayload
+    source: str = "sample"
+    is_saved: bool = False
+
+
+class RecommendationDetailResponse(BaseModel):
+    recommendation_id: str
+    route_id: str
+    title: str
+    subtitle: str
+    region: RegionItem
+    sido: str
+    sigungu: str
+    theme: str
+    theme_label: str
+    travel_time: str
+    travel_time_label: str
+    transport: str
+    transport_label: str
+    companion: str
+    companion_label: str
+    contribution_score: int
+    estimated_duration_minutes: int
+    estimated_cost_min: int
+    estimated_cost_max: int
+    local_consumption_count: int
+    place_count: int
+    total_stay_minutes: int
+    route_badges: list[str]
+    summary: RecommendationSummary
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
