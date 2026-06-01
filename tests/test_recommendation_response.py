@@ -128,7 +128,7 @@ def test_recommendation_response_contract_for_frontend() -> None:
         "generation_source",
     }
 
-    assert "map_markers" not in data
+    assert data["map_markers"][0]["name"] == "도담삼봉"
 
     first_place = data["places"][0]
     assert first_place["order"] == 1

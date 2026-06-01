@@ -25,6 +25,7 @@ from app.schemas.recommendations import (
     RegionStory,
     RouteRecommendationPlace,
     RouteLeg,
+    RouteMapMarker,
     SelectionModeItem,
     SelectionOptionsResponse,
     TodayRecommendationCard,
@@ -484,6 +485,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         ai_reason_detail=ai_reason_detail,
         places=places,
         route_legs=route_legs,
+        map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
             summary=summary,
@@ -1015,6 +1017,18 @@ def _build_route_preview_text(places: list[RouteRecommendationPlace]) -> str:
         return "추천 장소 준비 중"
     return " → ".join(place.name for place in places)
 
+def _to_map_marker(place: RouteRecommendationPlace) -> RouteMapMarker:
+    return RouteMapMarker(
+        order=place.order,
+        visit_order=place.visit_order,
+        place_id=place.place_id,
+        name=place.name,
+        lat=place.lat,
+        lng=place.lng,
+        category=place.category,
+        image_url=place.image_url,
+        is_local_consumption=place.is_local_consumption,
+    )
 
 def _get_candidate_places(
     region: RegionItem,

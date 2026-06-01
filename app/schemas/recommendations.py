@@ -490,6 +490,16 @@ class RecommendationPlacePreview(BaseModel):
     lng: float
     is_local_consumption: bool
 
+class RouteMapMarker(BaseModel):
+    order: int
+    visit_order: int
+    place_id: str
+    name: str
+    lat: float
+    lng: float
+    category: str
+    image_url: str | None = None
+    is_local_consumption: bool
 
 class RecommendationCard(BaseModel):
     recommendation_id: str
@@ -561,6 +571,7 @@ class RecommendationResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
+    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
@@ -602,6 +613,7 @@ class RecommendationDetailResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
+    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False

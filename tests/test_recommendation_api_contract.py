@@ -52,7 +52,7 @@ def test_today_recommendation_endpoint_matches_card_detail_contract() -> None:
     assert data["detail_api_path"] == f"/api/v1/ai-recommendations/{data['route_id']}"
     assert data["save_api_path"] == "/api/v1/routes/from-recommendation"
     assert "card" not in data["recommendation"]
-    assert "map_markers" not in data["recommendation"]
+    assert "map_markers" in data["recommendation"]
     assert "places" not in data["card"]
     assert len(data["card"]["tags"]) == 3
     assert len(data["card"]["metric_badges"]) == 3

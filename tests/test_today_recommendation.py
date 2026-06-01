@@ -88,4 +88,4 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
     assert data["recommendation"]["route_id"] == data["route_id"]
     assert data["recommendation"]["title"] == data["card"]["title"]
     assert data["recommendation"]["legacy_route_payload"]["title"] == data["card"]["title"]
-    assert "map_markers" not in data["recommendation"]
+    assert data["recommendation"]["map_markers"][0]["name"] == "도담삼봉"
