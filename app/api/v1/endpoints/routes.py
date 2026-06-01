@@ -34,6 +34,7 @@ def read_route_detail(route_id: str):
         raise HTTPException(status_code=404, detail="동선을 찾을 수 없습니다.")
     return result
 
+
 @router.get(
     "/{route_id}/transportation",
     response_model=RouteTransportationResponse,
@@ -44,6 +45,7 @@ def read_route_transportation(route_id: str):
     if result is None:
         raise HTTPException(status_code=404, detail="동선을 찾을 수 없습니다.")
     return result
+
 
 @router.post(
     "",

@@ -9,6 +9,7 @@ def get_routes(user_id: str) -> list[RouteListItem]:
     result = supabase.table("routes") \
         .select("id, title, created_at, image_url, route_places(visit_order)") \
         .eq("user_id", user_id) \
+        .order("created_at", descending=True) \
         .execute()
     
     formatted_data = []
