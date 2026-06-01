@@ -1,8 +1,12 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from app.core.geo import calculate_distance_in_meters
 from app.data.danyang_places import PlaceCandidate, list_danyang_mvp_places
 from app.schemas.recommendations import (
+    ContributionInfo,
+    LocalConsumptionPoint,
+    MobilityInfo,
     OptionItem,
     PlaceItem,
     PlaceListResponse,
@@ -17,7 +21,9 @@ from app.schemas.recommendations import (
     RegionGroupItem,
     RegionItem,
     RegionListResponse,
+    RegionStory,
     RouteRecommendationPlace,
+    RouteLeg,
     RouteMapMarker,
     SelectionModeItem,
     SelectionOptionsResponse,
@@ -233,6 +239,21 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         _to_recommended_place(order=index + 1, scored_place=scored_place)
         for index, scored_place in enumerate(plan.places)
     ]
+    route_legs = _build_route_legs(places)
+    total_distance_meters = sum(leg.distance_meters for leg in route_legs)
+    mobility = _build_mobility_info(
+        transport=request.transport,
+        transport_label=transport_label,
+        total_distance_meters=total_distance_meters,
+        route_legs=route_legs,
+    )
+    contribution_info = _build_contribution_info(plan=plan, places=places)
+    local_consumption_points = _build_local_consumption_points(places)
+    region_story = _build_region_story(
+        region=region,
+        theme_label=theme_label,
+        places=places,
+    )
     summary = _build_summary(plan)
     ai_reason_detail = generate_ai_reason_detail(
         region=region,
@@ -263,8 +284,12 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         subtitle=f"{region.sido} {region.sigungu}에서 즐기는 {travel_time_label} 여행",
         region=region,
         theme_label=theme_label,
+        region_story=region_story,
         travel_time_label=travel_time_label,
         transport_label=transport_label,
+        mobility=mobility,
+        contribution_info=contribution_info,
+        local_consumption_points=local_consumption_points,
         plan=plan,
         summary=summary,
         ai_reason=ai_reason,
@@ -279,6 +304,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         region=region,
         sido=region.sido,
         sigungu=region.sigungu,
+        region_story=region_story,
         theme=request.theme,
         theme_label=theme_label,
         travel_time=request.travel_time,
@@ -288,18 +314,25 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         companion=request.companion,
         companion_label=companion_label,
         contribution_score=plan.contribution_score,
+        contribution_info=contribution_info,
         estimated_duration_minutes=plan.estimated_duration_minutes,
         estimated_cost_min=plan.estimated_cost_min,
         estimated_cost_max=plan.estimated_cost_max,
         local_consumption_count=plan.local_consumption_count,
+        local_consumption_points=local_consumption_points,
         place_count=len(places),
         total_stay_minutes=sum(place.stay_minutes for place in places),
+        total_distance_meters=total_distance_meters,
+        total_distance_km=_to_distance_km(total_distance_meters),
+        total_distance_text=_format_distance(total_distance_meters),
+        mobility=mobility,
         route_badges=_build_route_badges(plan, theme_label),
         summary=summary,
         card=card,
         ai_reason=ai_reason,
         ai_reason_detail=ai_reason_detail,
         places=places,
+        route_legs=route_legs,
         map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
@@ -358,6 +391,8 @@ def _to_recommended_place(
         stay_minutes=place.stay_minutes,
         reason=place.reason,
         contribution_reason=place.contribution_reason,
+        place_story=_build_place_story(place),
+        local_tip=_build_place_local_tip(place),
         image_url=place.image_url,
         estimated_cost_min=place.estimated_cost_min,
         estimated_cost_max=place.estimated_cost_max,
@@ -430,6 +465,212 @@ def _to_map_marker(place: RouteRecommendationPlace) -> RouteMapMarker:
     )
 
 
+def _build_route_legs(places: list[RouteRecommendationPlace]) -> list[RouteLeg]:
+    route_legs: list[RouteLeg] = []
+    if not places:
+        return route_legs
+
+    places[0].distance_from_previous_meters = None
+    places[0].distance_from_previous_km = None
+    places[0].distance_from_previous_text = None
+
+    for index in range(1, len(places)):
+        previous_place = places[index - 1]
+        current_place = places[index]
+        distance_meters = round(
+            calculate_distance_in_meters(
+                previous_place.lat,
+                previous_place.lng,
+                current_place.lat,
+                current_place.lng,
+            )
+        )
+        distance_km = _to_distance_km(distance_meters)
+        distance_text = _format_distance(distance_meters)
+
+        current_place.distance_from_previous_meters = distance_meters
+        current_place.distance_from_previous_km = distance_km
+        current_place.distance_from_previous_text = distance_text
+        route_legs.append(
+            RouteLeg(
+                order=index,
+                from_place_id=previous_place.place_id,
+                from_name=previous_place.name,
+                to_place_id=current_place.place_id,
+                to_name=current_place.name,
+                distance_meters=distance_meters,
+                distance_km=distance_km,
+                distance_text=distance_text,
+            )
+        )
+
+    return route_legs
+
+
+def _build_mobility_info(
+    *,
+    transport: str,
+    transport_label: str,
+    total_distance_meters: int,
+    route_legs: list[RouteLeg],
+) -> MobilityInfo:
+    max_leg_distance = max((leg.distance_meters for leg in route_legs), default=0)
+
+    if transport == "walk":
+        if total_distance_meters <= 2500 and max_leg_distance <= 1200:
+            level = "low"
+            label = "이동 난이도 낮음"
+            summary = "주요 장소 간 거리가 짧아 뚜벅이 이동으로도 부담이 적은 코스입니다."
+        elif total_distance_meters <= 6000 and max_leg_distance <= 3000:
+            level = "medium"
+            label = "이동 난이도 보통"
+            summary = "일부 구간 이동 거리가 있어 도보와 짧은 대중교통 이동을 함께 고려하면 좋습니다."
+        else:
+            level = "high"
+            label = "이동 난이도 높음"
+            summary = "장소 사이 거리가 길어 전체 코스를 도보로만 이동하기에는 부담이 큰 코스입니다."
+    elif transport == "public_transport":
+        if max_leg_distance <= 1500:
+            level = "low"
+            label = "이동 난이도 낮음"
+            summary = "장소 간 이동 거리가 짧아 대중교통과 짧은 도보를 함께 쓰기 좋은 코스입니다."
+        elif max_leg_distance <= 5000:
+            level = "medium"
+            label = "이동 난이도 보통"
+            summary = "대중교통 이용은 가능하지만 일부 구간은 환승이나 도보 이동을 고려해야 합니다."
+        else:
+            level = "high"
+            label = "이동 난이도 높음"
+            summary = "장소 간 거리가 길어 대중교통만으로는 이동 부담이 있을 수 있습니다."
+    else:
+        if total_distance_meters <= 12000:
+            level = "low"
+            label = "이동 난이도 낮음"
+            summary = "자차 기준으로 장소 간 이동 부담이 크지 않은 코스입니다."
+        elif total_distance_meters <= 30000:
+            level = "medium"
+            label = "이동 난이도 보통"
+            summary = "자차 이동을 전제로 하면 무리 없이 소화할 수 있는 거리의 코스입니다."
+        else:
+            level = "high"
+            label = "이동 난이도 높음"
+            summary = "자차 기준으로도 이동 거리가 긴 편이라 여유 있는 일정이 필요합니다."
+
+    return MobilityInfo(
+        level=level,
+        label=label,
+        summary=summary,
+        recommended_transport=transport_label,
+    )
+
+
+def _build_contribution_info(
+    *,
+    plan: RecommendationPlan,
+    places: list[RouteRecommendationPlace],
+) -> ContributionInfo:
+    if places:
+        average_place_score = round(
+            sum(place.local_contribution_score for place in places) / len(places)
+        )
+    else:
+        average_place_score = 0
+    local_consumption_bonus = min(plan.local_consumption_count * 3, 10)
+
+    return ContributionInfo(
+        score=plan.contribution_score,
+        label=f"지역 기여도 {plan.contribution_score}점",
+        description=(
+            "지역 기여도는 공식 공공 지표가 아니라 Tripick MVP 내부 점수입니다. "
+            "코스에 포함된 장소들의 지역 기여도 평균에 로컬 소비 장소 보너스를 더해 계산합니다."
+        ),
+        formula="장소별 local_contribution_score 평균 + 로컬 소비 장소 수 * 3점(최대 10점)",
+        average_place_score=average_place_score,
+        local_consumption_bonus=local_consumption_bonus,
+        local_consumption_count=plan.local_consumption_count,
+        place_count=len(places),
+        is_official_metric=False,
+    )
+
+
+def _build_local_consumption_points(
+    places: list[RouteRecommendationPlace],
+) -> list[LocalConsumptionPoint]:
+    return [
+        LocalConsumptionPoint(
+            order=place.order,
+            place_id=place.place_id,
+            name=place.name,
+            category=place.category,
+            summary=place.reason,
+            contribution_reason=place.contribution_reason,
+            estimated_cost_min=place.estimated_cost_min,
+            estimated_cost_max=place.estimated_cost_max,
+            estimated_cost_text=(
+                f"{place.estimated_cost_min:,}원~{place.estimated_cost_max:,}원"
+            ),
+            lat=place.lat,
+            lng=place.lng,
+        )
+        for place in places
+        if place.is_local_consumption
+    ]
+
+
+def _build_region_story(
+    *,
+    region: RegionItem,
+    theme_label: str,
+    places: list[RouteRecommendationPlace],
+) -> RegionStory:
+    if region.id == "region-danyang":
+        return RegionStory(
+            title="단양 로컬 여행 이야기",
+            summary=(
+                "단양은 남한강을 따라 이어지는 자연 경관과 전통시장, 전망 명소가 "
+                "가까이 연결된 충북의 대표 체류형 여행지입니다."
+            ),
+            history=(
+                "단양은 삼봉 정도전의 이야기가 남아 있는 도담삼봉과 석문, "
+                "남한강 물길을 중심으로 형성된 산수 관광 자원이 잘 알려진 지역입니다."
+            ),
+            local_story=(
+                f"{theme_label} 코스에서는 {places[0].name if places else '대표 명소'}에서 "
+                "지역의 첫인상을 만들고, 시장과 로컬 카페를 함께 배치해 방문이 지역 소비로 "
+                "이어지도록 구성했습니다."
+            ),
+            local_tip=(
+                "전망 명소 방문 전후로 단양구경시장이나 로컬 카페를 함께 들르면 "
+                "짧은 일정에서도 지역 상권 체류 효과를 만들 수 있습니다."
+            ),
+            source="mvp_sample",
+        )
+
+    return RegionStory(
+        title=f"{region.sigungu} 로컬 여행 이야기",
+        summary=f"{region.sigungu}의 대표 장소와 로컬 소비 지점을 함께 엮은 여행 코스입니다.",
+        history=f"{region.sigungu}의 지역 자원과 생활권을 함께 경험할 수 있도록 구성했습니다.",
+        local_story=(
+            f"{theme_label} 테마에 맞는 장소와 지역 소비 장소를 함께 추천해 "
+            "여행 만족도와 지역 기여를 동시에 고려했습니다."
+        ),
+        local_tip="대표 관광지와 로컬 상권을 같은 동선 안에서 함께 방문해보세요.",
+        source="mvp_sample",
+    )
+
+
+def _build_place_story(place: PlaceCandidate) -> str:
+    return f"{place.name}은 {place.reason}"
+
+
+def _build_place_local_tip(place: PlaceCandidate) -> str:
+    if place.is_local_consumption:
+        return "이 장소에서는 식사, 카페, 간식 등 실제 지역 상권 소비로 이어질 수 있습니다."
+    if place.estimated_cost_min > 0:
+        return "유료 체험이나 입장 후 주변 로컬 상권을 함께 방문하면 지역 체류 효과가 커집니다."
+    return "방문 전후 가까운 전통시장이나 로컬 매장을 함께 둘러보면 더 좋은 동선이 됩니다."
+
+
 def _build_recommendation_card(
     *,
     recommendation_id: str,
@@ -438,8 +679,12 @@ def _build_recommendation_card(
     subtitle: str,
     region: RegionItem,
     theme_label: str,
+    region_story: RegionStory,
     travel_time_label: str,
     transport_label: str,
+    mobility: MobilityInfo,
+    contribution_info: ContributionInfo,
+    local_consumption_points: list[LocalConsumptionPoint],
     plan: RecommendationPlan,
     summary: RecommendationSummary,
     ai_reason: str,
@@ -457,11 +702,15 @@ def _build_recommendation_card(
         sigungu=region.sigungu,
         region_label=f"{region.sido} {region.sigungu}",
         theme_label=theme_label,
+        region_story=region_story,
         thumbnail_url=next((place.image_url for place in places if place.image_url), None),
         contribution_score=plan.contribution_score,
+        contribution_info=contribution_info,
         estimated_duration_text=summary.duration_text,
         estimated_cost_text=summary.cost_range_text,
         local_consumption_text=summary.local_consumption_text,
+        local_consumption_points=local_consumption_points,
+        mobility=mobility,
         primary_badges=_build_primary_badges(
             theme_label=theme_label,
             travel_time_label=travel_time_label,
@@ -672,4 +921,14 @@ def _format_duration(minutes: int) -> str:
     if hours:
         return f"{hours}시간"
     return f"{remaining_minutes}분"
+
+
+def _to_distance_km(distance_meters: int) -> float:
+    return round(distance_meters / 1000, 1)
+
+
+def _format_distance(distance_meters: int) -> str:
+    if distance_meters < 1000:
+        return f"{distance_meters}m"
+    return f"{_to_distance_km(distance_meters):.1f}km"
 

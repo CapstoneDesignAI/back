@@ -360,12 +360,17 @@ class RouteRecommendationPlace(BaseModel):
     stay_minutes: int
     reason: str
     contribution_reason: str
+    place_story: str
+    local_tip: str
     image_url: str | None = None
     estimated_cost_min: int
     estimated_cost_max: int
     local_contribution_score: int
     theme_tags: list[str]
     tags: list[str]
+    distance_from_previous_meters: int | None = None
+    distance_from_previous_km: float | None = None
+    distance_from_previous_text: str | None = None
     is_local_consumption: bool
     recommendation_score: int
     score_reasons: list[str]
@@ -386,6 +391,59 @@ class RouteMapMarker(BaseModel):
     category: str
     lat: float
     lng: float
+
+
+class RouteLeg(BaseModel):
+    order: int
+    from_place_id: str
+    from_name: str
+    to_place_id: str
+    to_name: str
+    distance_meters: int
+    distance_km: float
+    distance_text: str
+
+
+class MobilityInfo(BaseModel):
+    level: str
+    label: str
+    summary: str
+    recommended_transport: str
+
+
+class ContributionInfo(BaseModel):
+    score: int
+    label: str
+    description: str
+    formula: str
+    average_place_score: int
+    local_consumption_bonus: int
+    local_consumption_count: int
+    place_count: int
+    is_official_metric: bool
+
+
+class LocalConsumptionPoint(BaseModel):
+    order: int
+    place_id: str
+    name: str
+    category: str
+    summary: str
+    contribution_reason: str
+    estimated_cost_min: int
+    estimated_cost_max: int
+    estimated_cost_text: str
+    lat: float
+    lng: float
+
+
+class RegionStory(BaseModel):
+    title: str
+    summary: str
+    history: str
+    local_story: str
+    local_tip: str
+    source: str
 
 
 class RecommendationSavePayload(BaseModel):
@@ -427,11 +485,15 @@ class RecommendationCard(BaseModel):
     sigungu: str
     region_label: str
     theme_label: str
+    region_story: RegionStory
     thumbnail_url: str | None = None
     contribution_score: int
+    contribution_info: ContributionInfo
     estimated_duration_text: str
     estimated_cost_text: str
     local_consumption_text: str
+    local_consumption_points: list[LocalConsumptionPoint]
+    mobility: MobilityInfo
     primary_badges: list[str]
     metric_badges: list[str]
     place_count: int
@@ -454,6 +516,7 @@ class RecommendationResponse(BaseModel):
     region: RegionItem
     sido: str
     sigungu: str
+    region_story: RegionStory
     theme: str
     theme_label: str
     travel_time: str
@@ -463,18 +526,25 @@ class RecommendationResponse(BaseModel):
     companion: str
     companion_label: str
     contribution_score: int
+    contribution_info: ContributionInfo
     estimated_duration_minutes: int
     estimated_cost_min: int
     estimated_cost_max: int
     local_consumption_count: int
+    local_consumption_points: list[LocalConsumptionPoint]
     place_count: int
     total_stay_minutes: int
+    total_distance_meters: int
+    total_distance_km: float
+    total_distance_text: str
+    mobility: MobilityInfo
     route_badges: list[str]
     summary: RecommendationSummary
     card: RecommendationCard
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
+    route_legs: list[RouteLeg]
     map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
@@ -489,6 +559,7 @@ class RecommendationDetailResponse(BaseModel):
     region: RegionItem
     sido: str
     sigungu: str
+    region_story: RegionStory
     theme: str
     theme_label: str
     travel_time: str
@@ -498,17 +569,24 @@ class RecommendationDetailResponse(BaseModel):
     companion: str
     companion_label: str
     contribution_score: int
+    contribution_info: ContributionInfo
     estimated_duration_minutes: int
     estimated_cost_min: int
     estimated_cost_max: int
     local_consumption_count: int
+    local_consumption_points: list[LocalConsumptionPoint]
     place_count: int
     total_stay_minutes: int
+    total_distance_meters: int
+    total_distance_km: float
+    total_distance_text: str
+    mobility: MobilityInfo
     route_badges: list[str]
     summary: RecommendationSummary
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
+    route_legs: list[RouteLeg]
     map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
