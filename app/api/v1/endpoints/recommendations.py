@@ -69,6 +69,7 @@ AI_REGION_MAP = {
     # 충청권
     "단양": "region-danyang",
     "단양군": "region-danyang",
+    "충청북도 단양군": "region-danyang",
     "옥천": "region-okcheon",
     "옥천군": "region-okcheon",
     "괴산": "region-goesan",
