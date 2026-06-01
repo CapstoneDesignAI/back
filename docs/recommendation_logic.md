@@ -156,21 +156,12 @@ route-danyang-healing-half_day-walk-friends
 
 추천 응답은 카드와 상세를 분리합니다.
 
-<<<<<<< HEAD
 | API                                         | Role           | Main Fields                                                                                 |
 | ------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
 | `POST /api/v1/ai-recommendations`           | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
 | `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리                          |
 | `GET /api/v1/recommendations/today`         | 오늘의 추천    | 카드와 상세 이동용 `route_id`                                                               |
 | `POST /api/v1/routes/from-recommendation`   | 추천 동선 저장 | 요청 body의 `route_id`로 저장                                                               |
-=======
-| API | Role | Main Fields |
-| --- | --- | --- |
-| `POST /api/v1/ai-recommendations` | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
-| `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리 |
-| `GET /api/v1/recommendations/today` | 오늘의 추천 | 카드와 상세 이동용 `route_id` |
-| `POST /api/v1/routes/from-recommendation` | 추천 동선 저장 | 요청 body의 `route_id`로 저장 |
->>>>>>> f38057b (docs: 추천 API 명세 최신화)
 
 ## Card Tags
 

@@ -178,17 +178,6 @@ def read_ai_recommendation_detail(route_id: str) -> RecommendationDetailResponse
         raise HTTPException(status_code=404, detail="추천 동선을 찾을 수 없습니다.")
     return recommendation
 
-@router.get(
-    "/ai-recommendations/{route_id}",
-    response_model=RecommendationDetailResponse,
-    summary="AI 추천 동선 상세 조회",
-)
-def read_ai_recommendation_detail(route_id: str) -> RecommendationDetailResponse:
-    recommendation = get_recommendation_detail(route_id)
-    if recommendation is None:
-        raise HTTPException(status_code=404, detail="추천 동선을 찾을 수 없습니다.")
-    return recommendation
-
 
 def _to_recommendation_request(request_data: AIRecommendationRequest) -> RecommendationRequest:
     region_text = (request_data.region or "").strip()
