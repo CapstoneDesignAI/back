@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from app.schemas.recommendations import (
     AIRecommendationRequest,
     PlaceListResponse,
+    RecommendationCard,
+    RecommendationDetailResponse,
     RecommendationOptionsResponse,
     RecommendationRequest,
     RecommendationResponse,
@@ -11,6 +13,7 @@ from app.schemas.recommendations import (
 )
 from app.services.recommendations import (
     create_recommendation,
+    get_recommendation_detail,
     get_recommendation_options,
     get_selection_options,
     get_today_recommendation,
@@ -142,12 +145,25 @@ def recommend_route(request: RecommendationRequest) -> RecommendationResponse:
 
 @router.post(
     "/ai-recommendations",
-    response_model=RecommendationResponse,
+    response_model=RecommendationCard,
     status_code=status.HTTP_200_OK,
-    summary="AI 맞춤 동선 추천",
+    summary="AI 맞춤 동선 추천 카드",
 )
-async def get_ai_recommendation(request_data: AIRecommendationRequest) -> RecommendationResponse:
-    return create_recommendation(_to_recommendation_request(request_data))
+async def get_ai_recommendation(request_data: AIRecommendationRequest) -> RecommendationCard:
+    recommendation = create_recommendation(_to_recommendation_request(request_data))
+    return recommendation.card
+
+
+@router.get(
+    "/ai-recommendations/{route_id}",
+    response_model=RecommendationDetailResponse,
+    summary="AI 추천 동선 상세 조회",
+)
+def read_ai_recommendation_detail(route_id: str) -> RecommendationDetailResponse:
+    recommendation = get_recommendation_detail(route_id)
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail="추천 동선을 찾을 수 없습니다.")
+    return recommendation
 
 
 def _to_recommendation_request(request_data: AIRecommendationRequest) -> RecommendationRequest:

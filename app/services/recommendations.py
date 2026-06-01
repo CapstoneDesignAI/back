@@ -252,6 +252,8 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         region=region,
         theme=request.theme,
         travel_time=request.travel_time,
+        transport=request.transport,
+        companion=request.companion,
     )
     title = f"{region.sigungu.replace('군', '')} {theme_label} 로컬 코스"
     card = _build_recommendation_card(
@@ -275,6 +277,8 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         title=title,
         subtitle=card.subtitle,
         region=region,
+        sido=region.sido,
+        sigungu=region.sigungu,
         theme=request.theme,
         theme_label=theme_label,
         travel_time=request.travel_time,
@@ -304,6 +308,13 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         ),
         source=_resolve_response_source(candidate_places),
     )
+
+
+def get_recommendation_detail(route_id: str) -> RecommendationResponse | None:
+    request = _parse_route_id(route_id)
+    if request is None:
+        return None
+    return create_recommendation(request)
 
 
 def _to_place_item(place: PlaceCandidate) -> PlaceItem:
@@ -451,7 +462,15 @@ def _build_recommendation_card(
         estimated_duration_text=summary.duration_text,
         estimated_cost_text=summary.cost_range_text,
         local_consumption_text=summary.local_consumption_text,
-        primary_badges=[theme_label, travel_time_label, transport_label],
+        primary_badges=_build_primary_badges(
+            theme_label=theme_label,
+            travel_time_label=travel_time_label,
+            transport_label=transport_label,
+        ),
+        metric_badges=_build_metric_badges(
+            plan=plan,
+            place_count=len(places),
+        ),
         place_count=len(places),
         place_count_text=f"장소 {len(places)}곳",
         place_preview_names=[place.name for place in preview_places],
@@ -461,6 +480,12 @@ def _build_recommendation_card(
                 place_id=place.place_id,
                 name=place.name,
                 category=place.category,
+                summary=place.reason,
+                tags=place.tags[:2],
+                image_url=place.image_url,
+                lat=place.lat,
+                lng=place.lng,
+                is_local_consumption=place.is_local_consumption,
             )
             for place in preview_places
         ],
@@ -490,9 +515,67 @@ def _build_route_id(
     region: RegionItem,
     theme: str,
     travel_time: str,
+    transport: str,
+    companion: str,
 ) -> str:
     region_slug = region.id.removeprefix("region-")
-    return f"route-{region_slug}-{theme}-{travel_time}"
+    return f"route-{region_slug}-{theme}-{travel_time}-{transport}-{companion}"
+
+
+def _parse_route_id(route_id: str) -> RecommendationRequest | None:
+    parts = route_id.split("-")
+    if len(parts) not in {4, 6} or parts[0] != "route":
+        return None
+
+    region_id = f"region-{parts[1]}"
+    if _resolve_region_by_id(region_id).id != region_id:
+        return None
+
+    theme = parts[2]
+    travel_time = parts[3]
+    transport = parts[4] if len(parts) == 6 else "walk"
+    companion = parts[5] if len(parts) == 6 else "friends"
+
+    valid_themes = {option.code for option in OPTIONS.themes}
+    valid_travel_times = {option.code for option in OPTIONS.travel_times}
+    valid_transports = {option.code for option in OPTIONS.transports}
+    valid_companions = {option.code for option in OPTIONS.companions}
+    if (
+        theme not in valid_themes
+        or travel_time not in valid_travel_times
+        or transport not in valid_transports
+        or companion not in valid_companions
+    ):
+        return None
+
+    return RecommendationRequest(
+        region_id=region_id,
+        theme=theme,
+        travel_time=travel_time,
+        transport=transport,
+        companion=companion,
+    )
+
+
+def _build_primary_badges(
+    *,
+    theme_label: str,
+    travel_time_label: str,
+    transport_label: str,
+) -> list[str]:
+    return [theme_label, travel_time_label, transport_label]
+
+
+def _build_metric_badges(
+    *,
+    plan: RecommendationPlan,
+    place_count: int,
+) -> list[str]:
+    return [
+        f"지역 기여도 {plan.contribution_score}점",
+        f"로컬 소비 {plan.local_consumption_count}곳",
+        f"장소 {place_count}곳",
+    ]
 
 
 def _build_card_summary(

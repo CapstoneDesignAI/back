@@ -14,9 +14,11 @@ def test_recommendation_response_contract_for_frontend() -> None:
     )
     data = response.model_dump()
 
-    assert data["route_id"] == "route-danyang-healing-half_day"
+    assert data["route_id"] == "route-danyang-healing-half_day-walk-friends"
     assert data["title"] == "단양 힐링 로컬 코스"
     assert data["subtitle"] == "충청북도 단양군에서 즐기는 반나절 여행"
+    assert data["sido"] == "충청북도"
+    assert data["sigungu"] == "단양군"
     assert data["theme_label"] == "힐링"
     assert data["travel_time_label"] == "반나절"
     assert data["transport_label"] == "뚜벅이"
@@ -29,6 +31,8 @@ def test_recommendation_response_contract_for_frontend() -> None:
     assert data["card"]["sido"] == "충청북도"
     assert data["card"]["sigungu"] == "단양군"
     assert data["card"]["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
+    assert len(data["card"]["primary_badges"]) == 3
+    assert data["card"]["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["card"]["place_count_text"] == "장소 4곳"
     assert data["card"]["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
     assert data["card"]["route_preview_text"] == "도담삼봉 → 단양구경시장 → 카페산"
@@ -37,6 +41,12 @@ def test_recommendation_response_contract_for_frontend() -> None:
         "place_id": "sample-dodamsambong",
         "name": "도담삼봉",
         "category": "자연",
+        "summary": "단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
+        "tags": ["healing", "nature"],
+        "image_url": None,
+        "lat": 36.984539,
+        "lng": 128.369267,
+        "is_local_consumption": False,
     }
 
     assert data["summary"] == {
