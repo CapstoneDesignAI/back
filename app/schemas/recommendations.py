@@ -570,6 +570,7 @@ class RecommendationDetailResponse(BaseModel):
     mobility: MobilityInfo
     route_badges: list[str]
     summary: RecommendationSummary
+    card: RecommendationCard
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
