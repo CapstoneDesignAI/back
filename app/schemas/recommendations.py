@@ -425,15 +425,6 @@ class LocalConsumptionPoint(BaseModel):
     lng: float
 
 
-class RegionStory(BaseModel):
-    title: str
-    summary: str
-    history: str
-    local_story: str
-    local_tip: str
-    source: str
-
-
 class RecommendationSavePayload(BaseModel):
     title: str
     estimated_time: str
@@ -480,9 +471,7 @@ class RecommendationCard(BaseModel):
     estimated_duration_text: str
     estimated_cost_text: str
     local_consumption_text: str
-    local_consumption_points: list[LocalConsumptionPoint]
-    mobility: MobilityInfo
-    tags: list[str]
+    primary_badges: list[str]
     metric_badges: list[str]
     place_count: int
     place_count_text: str
@@ -532,7 +521,7 @@ class RecommendationResponse(BaseModel):
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
-    route_legs: list[RouteLeg]
+    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
@@ -573,7 +562,7 @@ class RecommendationDetailResponse(BaseModel):
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
-    route_legs: list[RouteLeg]
+    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
