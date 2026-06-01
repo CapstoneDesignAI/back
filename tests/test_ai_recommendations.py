@@ -28,7 +28,19 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
     assert data["title"] == "단양 힐링 로컬 코스"
     assert data["sido"] == "충청북도"
     assert data["sigungu"] == "단양군"
+    assert data["region_story"]["title"] == "단양 로컬 여행 이야기"
+    assert data["region_story"]["source"] == "mvp_sample"
     assert data["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
+    assert data["mobility"]["level"] == "high"
+    assert data["mobility"]["recommended_transport"] == "뚜벅이"
+    assert data["contribution_info"]["score"] == 86
+    assert data["contribution_info"]["average_place_score"] == 80
+    assert data["contribution_info"]["local_consumption_bonus"] == 6
+    assert data["contribution_info"]["is_official_metric"] is False
+    assert [point["place_id"] for point in data["local_consumption_points"]] == [
+        "sample-danyang-market",
+        "sample-cafe-sann",
+    ]
     assert len(data["primary_badges"]) == 3
     assert data["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
@@ -118,7 +130,25 @@ def test_ai_recommendation_detail_returns_route_by_route_id() -> None:
     assert data["sido"] == "충청북도"
     assert data["sigungu"] == "단양군"
     assert "card" not in data
+    assert data["mobility"]["label"] == "이동 난이도 높음"
+    assert data["local_consumption_points"][0]["name"] == "단양구경시장"
+    assert data["region_story"]["local_tip"].startswith("전망 명소 방문 전후")
+    assert data["contribution_info"]["formula"] == (
+        "장소별 local_contribution_score 평균 + 로컬 소비 장소 수 * 3점(최대 10점)"
+    )
+    assert data["places"][0]["distance_from_previous_meters"] is None
+    assert (
+        data["places"][1]["distance_from_previous_meters"]
+        == data["route_legs"][0]["distance_meters"]
+    )
+    assert data["total_distance_meters"] == sum(
+        leg["distance_meters"] for leg in data["route_legs"]
+    )
     assert data["places"][0]["name"] == "도담삼봉"
+    assert data["places"][1]["place_story"].startswith("단양구경시장은")
+    assert data["places"][1]["local_tip"] == (
+        "이 장소에서는 식사, 카페, 간식 등 실제 지역 상권 소비로 이어질 수 있습니다."
+    )
     assert data["map_markers"][0]["name"] == "도담삼봉"
     assert data["legacy_route_payload"]["title"] == data["title"]
 
