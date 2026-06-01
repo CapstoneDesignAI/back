@@ -158,7 +158,6 @@ def recommend_route(request: RecommendationRequest) -> RecommendationResponse:
 
 @router.post(
     "/ai-recommendations",
-<<<<<<< HEAD
     response_model=RecommendationCard,
     status_code=status.HTTP_200_OK,
     summary="AI 맞춤 동선 추천 카드",
@@ -179,17 +178,18 @@ def read_ai_recommendation_detail(route_id: str) -> RecommendationDetailResponse
         raise HTTPException(status_code=404, detail="추천 동선을 찾을 수 없습니다.")
     return recommendation
 
-
-=======
-    response_model=RecommendationResponse,
-    status_code=status.HTTP_200_OK,
-    summary="AI 맞춤 동선 추천",
+@router.get(
+    "/ai-recommendations/{route_id}",
+    response_model=RecommendationDetailResponse,
+    summary="AI 추천 동선 상세 조회",
 )
-async def get_ai_recommendation(request_data: AIRecommendationRequest) -> RecommendationResponse:
-    return create_recommendation(_to_recommendation_request(request_data))
+def read_ai_recommendation_detail(route_id: str) -> RecommendationDetailResponse:
+    recommendation = get_recommendation_detail(route_id)
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail="추천 동선을 찾을 수 없습니다.")
+    return recommendation
 
 
->>>>>>> 5ba1e1c (Feat: 추천 API 카드 응답 구조 정리)
 def _to_recommendation_request(request_data: AIRecommendationRequest) -> RecommendationRequest:
     region_text = (request_data.region or "").strip()
     return RecommendationRequest(

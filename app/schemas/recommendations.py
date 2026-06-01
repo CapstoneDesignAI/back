@@ -289,7 +289,7 @@ class RecommendationRequest(BaseModel):
     transport: str = Field(..., examples=["walk"])
     companion: str = Field(..., examples=["friends"])
     prefer_ai_region: bool = False
-    data_source: str = Field(default="sample", examples=["sample", "tour_api"])
+    data_source: str = Field(default="sample", examples=["sample", "supabase", "tour_api"])
 
     @field_validator("region_id", mode="before")
     @classmethod
@@ -570,7 +570,6 @@ class RecommendationDetailResponse(BaseModel):
     mobility: MobilityInfo
     route_badges: list[str]
     summary: RecommendationSummary
-    card: RecommendationCard
     ai_reason: str
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
