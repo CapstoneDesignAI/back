@@ -53,6 +53,31 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
     assert "legacy_route_payload" not in data
 
 
+def test_ai_recommendations_accepts_english_alias_values() -> None:
+    response = client.post(
+        "/api/v1/ai-recommendations",
+        json={
+            "duration": "half_day",
+            "transportation": "walk",
+            "travel_purpose": "healing",
+            "companion": "friends",
+            "region": "region-danyang",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["recommendation_id"] == "sample-danyang-healing-half_day"
+    assert data["route_id"] == "route-danyang-healing-half_day-walk-friends"
+    assert len(data["primary_badges"]) == 3
+    assert len(data["metric_badges"]) == 3
+    assert data["place_count"] == len(data["place_preview_names"]) + 1
+    assert data["place_preview"][0]["order"] == 1
+    assert "places" not in data
+    assert "route_legs" not in data
+
+
 def test_ai_recommendations_defaults_to_ai_region_when_region_is_missing() -> None:
     response = client.post(
         "/api/v1/ai-recommendations",

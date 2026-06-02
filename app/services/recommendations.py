@@ -1,5 +1,5 @@
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.geo import calculate_distance_in_meters
 from app.data.danyang_places import PlaceCandidate, list_danyang_mvp_places
@@ -212,7 +212,7 @@ def get_today_recommendation(
         companion="friends",
     )
     recommendation = create_recommendation(request)
-    today = reference_date or datetime.now(ZoneInfo("Asia/Seoul")).date()
+    today = reference_date or _today_in_korea()
 
     return TodayRecommendationResponse(
         today_date=today.isoformat(),
@@ -223,6 +223,14 @@ def get_today_recommendation(
         card=_to_today_card(recommendation),
         recommendation=_to_detail_response(recommendation),
     )
+
+
+def _today_in_korea() -> date:
+    try:
+        korea_timezone = ZoneInfo("Asia/Seoul")
+    except ZoneInfoNotFoundError:
+        korea_timezone = timezone(timedelta(hours=9))
+    return datetime.now(korea_timezone).date()
 
 
 def create_recommendation(request: RecommendationRequest) -> RecommendationResponse:
