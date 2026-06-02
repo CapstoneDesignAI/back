@@ -209,10 +209,11 @@ GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
   "transport_label": "뚜벅이",
   "companion_label": "친구",
   "contribution_score": 86,
-  "estimated_duration_minutes": 320,
-  "estimated_cost_min": 35000,
-  "estimated_cost_max": 55000,
-  "local_consumption_count": 2,
+  "estimated_duration_text": "5시간 20분",
+  "estimated_cost_text": "35,000원~55,000원",
+  "local_consumption_text": "로컬 소비 장소 2곳 포함",
+  "primary_badges": ["힐링", "반나절", "뚜벅이"],
+  "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
   "place_count": 4,
   "total_stay_minutes": 260,
   "total_distance_meters": 12300,
@@ -232,7 +233,6 @@ GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
   "places": [
     {
       "order": 1,
-      "visit_order": 1,
       "place_id": "sample-dodamsambong",
       "name": "도담삼봉",
       "category": "자연",
@@ -417,12 +417,12 @@ Authorization: Bearer <jwt_token>
 
 ### Query
 
-| Query | 설명 | 기본값 |
-| --- | --- | --- |
-| `region_id` | 조회할 지역 id | `region-danyang` |
-| `source` | `sample`, `tour_api`, `auto` | `sample` |
-| `theme` | TourAPI 조회 시 테마 필터 | 없음 |
-| `limit` | TourAPI 조회 개수 | `20` |
+| Query       | 설명                         | 기본값           |
+| ----------- | ---------------------------- | ---------------- |
+| `region_id` | 조회할 지역 id               | `region-danyang` |
+| `source`    | `sample`, `tour_api`, `auto` | `sample`         |
+| `theme`     | TourAPI 조회 시 테마 필터    | 없음             |
+| `limit`     | TourAPI 조회 개수            | `20`             |
 
 ### Response 200
 
@@ -471,15 +471,15 @@ Authorization: Bearer <jwt_token>
 
 장소 추천 점수는 아래 기준으로 계산합니다.
 
-| 기준 | 점수 |
-| --- | --- |
-| 선택 테마와 장소 태그 일치 | `+35` |
-| 이동수단과 장소 이동 태그 일치 | `+20` |
-| 이동수단 불일치 | `-25` |
-| 동행 유형 일치 | `+10` |
-| 장소 지역 기여도 | `local_contribution_score * 0.2` |
-| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 | `+20` |
-| 지역활성화 테마에서 기여도 80점 이상 | `+15` |
+| 기준                                             | 점수                             |
+| ------------------------------------------------ | -------------------------------- |
+| 선택 테마와 장소 태그 일치                       | `+35`                            |
+| 이동수단과 장소 이동 태그 일치                   | `+20`                            |
+| 이동수단 불일치                                  | `-25`                            |
+| 동행 유형 일치                                   | `+10`                            |
+| 장소 지역 기여도                                 | `local_contribution_score * 0.2` |
+| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 | `+20`                            |
+| 지역활성화 테마에서 기여도 80점 이상             | `+15`                            |
 
 코스 전체 `contribution_score`는 공식 공공 지표가 아니라 MVP 내부 점수입니다.
 
