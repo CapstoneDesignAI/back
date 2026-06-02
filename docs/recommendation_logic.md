@@ -25,39 +25,39 @@
 프론트 요청은 한국어 중심으로 받을 수 있습니다.
 백엔드 내부에서는 기존 로직 재사용을 위해 code 값으로 변환해서 사용합니다.
 
-| Type      | Korean Label    | Internal Code      |
-| --------- | --------------- | ------------------ |
-| 테마      | 힐링            | `healing`          |
-| 테마      | 맛집            | `food`             |
-| 테마      | 뚜벅이          | `walk`             |
-| 테마      | 자연투어        | `nature`           |
-| 테마      | 로컬시장        | `local_market`     |
-| 테마      | 지역활성화 추천 | `revitalization`   |
-| 여행 시간 | 3시간           | `3hours`           |
-| 여행 시간 | 반나절          | `half_day`         |
-| 여행 시간 | 하루            | `full_day`         |
-| 여행 시간 | 1박 2일         | `overnight`        |
-| 이동수단  | 뚜벅이          | `walk`             |
-| 이동수단  | 자차            | `car`              |
-| 이동수단  | 대중교통        | `public_transport` |
-| 동행      | 혼자            | `solo`             |
-| 동행      | 친구            | `friends`          |
-| 동행      | 가족            | `family`           |
-| 동행      | 연인            | `couple`           |
+| Type | Korean Label | Internal Code |
+| --- | --- | --- |
+| 테마 | 힐링 | `healing` |
+| 테마 | 맛집 | `food` |
+| 테마 | 뚜벅이 | `walk` |
+| 테마 | 자연투어 | `nature` |
+| 테마 | 로컬시장 | `local_market` |
+| 테마 | 지역활성화 추천 | `revitalization` |
+| 여행 시간 | 3시간 | `3hours` |
+| 여행 시간 | 반나절 | `half_day` |
+| 여행 시간 | 하루 | `full_day` |
+| 여행 시간 | 1박 2일 | `overnight` |
+| 이동수단 | 뚜벅이 | `walk` |
+| 이동수단 | 자차 | `car` |
+| 이동수단 | 대중교통 | `public_transport` |
+| 동행 | 혼자 | `solo` |
+| 동행 | 친구 | `friends` |
+| 동행 | 가족 | `family` |
+| 동행 | 연인 | `couple` |
 
 ## Place Scoring
 
 장소별 추천 점수는 사용자 조건과 장소 메타데이터를 비교해서 계산합니다.
 
-| Rule                                             |                            Score |
-| ------------------------------------------------ | -------------------------------: |
-| 선택 테마가 장소 테마와 일치                     |                              +35 |
-| 선택 이동수단이 장소 이동수단 태그와 일치        |                              +20 |
-| 선택 이동수단이 장소 이동수단 태그와 불일치      |                              -25 |
-| 선택 동행 유형이 장소 동행 태그와 일치           |                              +10 |
-| 장소 지역 기여도 반영                            | `local_contribution_score * 0.2` |
-| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 |                              +20 |
-| 지역활성화 테마에서 지역 기여도 80점 이상        |                              +15 |
+| Rule | Score |
+| --- | ---: |
+| 선택 테마가 장소 테마와 일치 | +35 |
+| 선택 이동수단이 장소 이동수단 태그와 일치 | +20 |
+| 선택 이동수단이 장소 이동수단 태그와 불일치 | -25 |
+| 선택 동행 유형이 장소 동행 태그와 일치 | +10 |
+| 장소 지역 기여도 반영 | `local_contribution_score * 0.2` |
+| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 | +20 |
+| 지역활성화 테마에서 지역 기여도 80점 이상 | +15 |
 
 점수 사유는 상세 응답의 장소별 `score_reasons`에 포함됩니다.
 
@@ -66,11 +66,11 @@
 여행 시간 옵션별로 전체 시간 예산을 잡고, 이동/휴식 buffer를 제외한 나머지 시간 안에서 장소를 선택합니다.
 
 | Travel Time | Total Budget | Buffer | Place Stay Budget |
-| ----------- | -----------: | -----: | ----------------: |
-| `3hours`    |        180분 |   30분 |             150분 |
-| `half_day`  |        320분 |   60분 |             260분 |
-| `full_day`  |        480분 |   90분 |             390분 |
-| `overnight` |        900분 |  180분 |             720분 |
+| --- | ---: | ---: | ---: |
+| `3hours` | 180분 | 30분 | 150분 |
+| `half_day` | 320분 | 60분 | 260분 |
+| `full_day` | 480분 | 90분 | 390분 |
+| `overnight` | 900분 | 180분 | 720분 |
 
 후보 장소는 점수와 장소별 지역 기여도를 기준으로 먼저 정렬합니다.
 선택이 끝난 뒤에는 실제 동선처럼 보이도록 기존 후보 데이터의 원래 순서로 다시 정렬합니다.
@@ -100,11 +100,11 @@
 
 응답에서는 다음 정보를 제공합니다.
 
-| Field                      | Description                     |
-| -------------------------- | ------------------------------- |
-| `local_consumption_count`  | 코스에 포함된 로컬 소비 장소 수 |
-| `local_consumption_points` | 로컬 소비 장소 목록             |
-| `local_consumption_text`   | 카드/상세 UI용 요약 문구        |
+| Field | Description |
+| --- | --- |
+| `local_consumption_count` | 코스에 포함된 로컬 소비 장소 수 |
+| `local_consumption_points` | 로컬 소비 장소 목록 |
+| `local_consumption_text` | 카드/상세 UI용 요약 문구 |
 
 ## Distance Calculation
 
@@ -113,12 +113,12 @@
 
 계산 결과는 다음 필드로 내려갑니다.
 
-| Field                      | Description                   |
-| -------------------------- | ----------------------------- |
-| `route_legs`               | 장소 사이 구간별 거리         |
-| `total_distance_meters`    | 전체 거리, meter              |
-| `total_distance_km`        | 전체 거리, km                 |
-| `total_distance_text`      | UI 표시용 거리                |
+| Field | Description |
+| --- | --- |
+| `route_legs` | 장소 사이 구간별 거리 |
+| `total_distance_meters` | 전체 거리, meter |
+| `total_distance_km` | 전체 거리, km |
+| `total_distance_text` | UI 표시용 거리 |
 | `distance_from_previous_*` | 각 장소의 이전 장소 기준 거리 |
 
 카카오맵 경로 API나 대중교통 API가 붙으면 이후 실제 이동거리/시간 기반으로 교체할 수 있습니다.
@@ -127,11 +127,11 @@
 
 `mobility`는 교통 API 없이 MVP 규칙으로 계산한 이동 난이도입니다.
 
-| Transport | Low                                   | Medium                            | High  |
-| --------- | ------------------------------------- | --------------------------------- | ----- |
-| 뚜벅이    | 전체 2.5km 이하, 최대 구간 1.2km 이하 | 전체 6km 이하, 최대 구간 3km 이하 | 그 외 |
-| 대중교통  | 최대 구간 1.5km 이하                  | 최대 구간 5km 이하                | 그 외 |
-| 자차      | 전체 12km 이하                        | 전체 30km 이하                    | 그 외 |
+| Transport | Low | Medium | High |
+| --- | --- | --- | --- |
+| 뚜벅이 | 전체 2.5km 이하, 최대 구간 1.2km 이하 | 전체 6km 이하, 최대 구간 3km 이하 | 그 외 |
+| 대중교통 | 최대 구간 1.5km 이하 | 최대 구간 5km 이하 | 그 외 |
+| 자차 | 전체 12km 이하 | 전체 30km 이하 | 그 외 |
 
 응답에는 `level`, `label`, `summary`, `recommended_transport`가 포함됩니다.
 
@@ -156,12 +156,12 @@ route-danyang-healing-half_day-walk-friends
 
 추천 응답은 카드와 상세를 분리합니다.
 
-| API                                         | Role           | Main Fields                                                                                 |
-| ------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
-| `POST /api/v1/ai-recommendations`           | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
-| `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리                          |
-| `GET /api/v1/recommendations/today`         | 오늘의 추천    | 카드와 상세 이동용 `route_id`                                                               |
-| `POST /api/v1/routes/from-recommendation`   | 추천 동선 저장 | 요청 body의 `route_id`로 저장                                                               |
+| API | Role | Main Fields |
+| --- | --- | --- |
+| `POST /api/v1/ai-recommendations` | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
+| `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리 |
+| `GET /api/v1/recommendations/today` | 오늘의 추천 | 카드와 상세 이동용 `route_id` |
+| `POST /api/v1/routes/from-recommendation` | 추천 동선 저장 | 요청 body의 `route_id`로 저장 |
 
 ## Card Tags
 
@@ -181,11 +181,11 @@ route-danyang-healing-half_day-walk-friends
 
 MVP에서는 지역 설명과 장소 설명을 샘플 데이터 기반으로 생성합니다.
 
-| Field          | Description                                 |
-| -------------- | ------------------------------------------- |
-| `region_story` | 지역의 여행 맥락, 역사, 로컬 팁             |
-| `place_story`  | 장소별 추천 맥락                            |
-| `local_tip`    | 장소 방문 시 로컬 소비나 체류로 연결되는 팁 |
+| Field | Description |
+| --- | --- |
+| `region_story` | 지역의 여행 맥락, 역사, 로컬 팁 |
+| `place_story` | 장소별 추천 맥락 |
+| `local_tip` | 장소 방문 시 로컬 소비나 체류로 연결되는 팁 |
 
 TourAPI 상세 소개 데이터가 안정적으로 확보되면 `region_story`, `place_story`를 실제 관광정보 기반으로 확장할 수 있습니다.
 

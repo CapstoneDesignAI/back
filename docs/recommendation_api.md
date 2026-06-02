@@ -1,98 +1,31 @@
-# Tripick Recommendation Logic
+# Tripick Recommendation API Contract
 
-이 문서는 Tripick MVP의 추천 로직을 회의, 발표, 프론트 연동 논의에서 설명할 수 있도록 정리한 문서입니다.
-현재 추천 점수는 공식 공공 지표가 아니라 서비스 내부 MVP 점수입니다.
+추천 점수와 지역 기여도 산식의 자세한 설명은 [`recommendation_logic.md`](./recommendation_logic.md)를 참고합니다.
 
-## Goal
+Tripick MVP 추천/동선 API 명세서입니다. 현재 프론트 메인 추천 API는 `POST /api/v1/ai-recommendations`이며, 카드 응답과 상세 응답은 분리되어 있습니다.
 
-추천 로직의 목표는 사용자가 선택한 지역, 테마, 여행 시간, 이동수단, 동행 조건에 맞춰 동선형 여행 코스를 만드는 것입니다.
-단순히 인기 장소만 고르는 방식이 아니라, 지역 소비 장소와 체류 시간을 함께 고려해 지역 기여도를 높이는 방향으로 추천합니다.
+## API Prefix
 
-## Main Flow
+모든 API는 기본 prefix `/api/v1` 아래에서 호출합니다.
 
-1. 사용자가 추천 조건을 보냅니다.
-2. 요청값은 한국어 라벨과 내부 code를 모두 받을 수 있도록 정규화합니다.
-3. 선택 지역을 기준으로 후보 장소를 불러옵니다.
-4. 각 장소에 점수를 부여합니다.
-5. 여행 시간 예산 안에 들어오는 장소를 고릅니다.
-6. 선택된 장소를 원래 동선 순서 기준으로 정렬합니다.
-7. 코스 전체의 지역 기여도, 예상 시간, 예상 비용, 로컬 소비 장소 수를 계산합니다.
-8. 장소 사이 직선거리와 이동 난이도를 계산합니다.
-9. 카드 응답과 상세 응답에 필요한 필드를 분리해서 반환합니다.
-
-## Request Normalization
-
-프론트 요청은 한국어 중심으로 받을 수 있습니다.
-백엔드 내부에서는 기존 로직 재사용을 위해 code 값으로 변환해서 사용합니다.
-
-| Type      | Korean Label    | Internal Code      |
-| --------- | --------------- | ------------------ |
-| 테마      | 힐링            | `healing`          |
-| 테마      | 맛집            | `food`             |
-| 테마      | 뚜벅이          | `walk`             |
-| 테마      | 자연투어        | `nature`           |
-| 테마      | 로컬시장        | `local_market`     |
-| 테마      | 지역활성화 추천 | `revitalization`   |
-| 여행 시간 | 3시간           | `3hours`           |
-| 여행 시간 | 반나절          | `half_day`         |
-| 여행 시간 | 하루            | `full_day`         |
-| 여행 시간 | 1박 2일         | `overnight`        |
-| 이동수단  | 뚜벅이          | `walk`             |
-| 이동수단  | 자차            | `car`              |
-| 이동수단  | 대중교통        | `public_transport` |
-| 동행      | 혼자            | `solo`             |
-| 동행      | 친구            | `friends`          |
-| 동행      | 가족            | `family`           |
-| 동행      | 연인            | `couple`           |
-
-## Place Scoring
-
-장소별 추천 점수는 사용자 조건과 장소 메타데이터를 비교해서 계산합니다.
-
-| Rule                                             |                            Score |
-| ------------------------------------------------ | -------------------------------: |
-| 선택 테마가 장소 테마와 일치                     |                              +35 |
-| 선택 이동수단이 장소 이동수단 태그와 일치        |                              +20 |
-| 선택 이동수단이 장소 이동수단 태그와 불일치      |                              -25 |
-| 선택 동행 유형이 장소 동행 태그와 일치           |                              +10 |
-| 장소 지역 기여도 반영                            | `local_contribution_score * 0.2` |
-| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 |                              +20 |
-| 지역활성화 테마에서 지역 기여도 80점 이상        |                              +15 |
-
-점수 사유는 상세 응답의 장소별 `score_reasons`에 포함됩니다.
-
-## Time Budget
-
-여행 시간 옵션별로 전체 시간 예산을 잡고, 이동/휴식 buffer를 제외한 나머지 시간 안에서 장소를 선택합니다.
-
-| Travel Time | Total Budget | Buffer | Place Stay Budget |
-| ----------- | -----------: | -----: | ----------------: |
-| `3hours`    |        180분 |   30분 |             150분 |
-| `half_day`  |        320분 |   60분 |             260분 |
-| `full_day`  |        480분 |   90분 |             390분 |
-| `overnight` |        900분 |  180분 |             720분 |
-
-후보 장소는 점수와 장소별 지역 기여도를 기준으로 먼저 정렬합니다.
-선택이 끝난 뒤에는 실제 동선처럼 보이도록 기존 후보 데이터의 원래 순서로 다시 정렬합니다.
-
-## Route Contribution Score
-
-코스의 `contribution_score`는 공식 공공 지표가 아니라 Tripick MVP 내부 점수입니다.
-회의나 발표에서는 "공식 지역 활성화 지수"라고 설명하면 안 됩니다.
+## Endpoint Summary
 
 ```text
-지역 기여도 = 장소별 local_contribution_score 평균 + 로컬 소비 장소 수 * 3점
-로컬 소비 보너스는 최대 10점
-최종 점수는 최대 100점
+GET    /api/v1/regions
+GET    /api/v1/places
+GET    /api/v1/recommendations/options
+GET    /api/v1/recommendations/selection-options
+GET    /api/v1/recommendations/today
+POST   /api/v1/recommendations
+POST   /api/v1/ai-recommendations
+GET    /api/v1/ai-recommendations/{route_id}
+
+GET    /api/v1/routes
+GET    /api/v1/routes/{route_id}
+POST   /api/v1/routes
+POST   /api/v1/routes/from-recommendation
+DELETE /api/v1/routes/{route_id}
 ```
-
-예를 들어 장소 평균 점수가 80점이고 로컬 소비 장소가 2곳이면 다음처럼 계산합니다.
-
-```text
-80 + min(2 * 3, 10) = 86점
-```
-
-응답에는 `contribution_info`로 산식과 세부 값을 함께 내려줍니다.
 
 ## Environment Variables
 
@@ -120,6 +53,13 @@ TourAPI `firstimage`, `firstimage2` 값은 장소 `image_url`과 카드 `thumbna
 
 ## Recommendation Flow
 
+1. 홈에서 오늘의 추천 조회: `GET /recommendations/today`
+2. 내 여행 찾기에서 조건 선택
+3. 추천 카드 생성: `POST /ai-recommendations`
+4. 동선 상세 조회: `GET /ai-recommendations/{route_id}`
+5. 저장 버튼 클릭: `POST /routes/from-recommendation`
+6. 저장한 동선 조회: `GET /routes`, `GET /routes/{saved_route_id}`
+
 ### Today Recommendation Save Flow
 
 오늘의 추천에서 받은 동선을 저장하고 다시 상세조회할 때는 아래 흐름을 사용합니다.
@@ -139,13 +79,6 @@ TourAPI `firstimage`, `firstimage2` 값은 장소 `image_url`과 카드 `thumbna
 
 프론트에서 AI 추천 상세 화면을 다시 보여줄 때는 `source_detail_api_path`를 사용합니다.
 저장된 DB 동선 상세 화면을 보여줄 때는 `saved_detail_api_path`를 사용합니다.
-
-1. 홈에서 오늘의 추천 조회: `GET /recommendations/today`
-2. 내 여행 찾기에서 조건 선택
-3. 추천 카드 생성: `POST /ai-recommendations`
-4. 동선 상세 조회: `GET /ai-recommendations/{route_id}`
-5. 저장 버튼 클릭: `POST /routes/from-recommendation`
-6. 저장한 동선 조회: `GET /routes`, `GET /routes/{saved_route_id}`
 
 ## GET /api/v1/recommendations/today
 
@@ -245,121 +178,239 @@ TourAPI `firstimage`, `firstimage2` 값은 장소 `image_url`과 카드 `thumbna
 
 ### Example
 
-## Local Consumption
-
-로컬 소비 장소는 전통시장, 지역 식당, 로컬 카페, 특산물/체험 장소처럼 실제 지역 상권 소비로 이어질 수 있는 장소입니다.
-
-응답에서는 다음 정보를 제공합니다.
-
-| Field                      | Description                     |
-| -------------------------- | ------------------------------- |
-| `local_consumption_count`  | 코스에 포함된 로컬 소비 장소 수 |
-| `local_consumption_points` | 로컬 소비 장소 목록             |
-| `local_consumption_text`   | 카드/상세 UI용 요약 문구        |
-
-## Distance Calculation
-
-장소 사이 거리는 현재 MVP 기준으로 좌표 간 직선거리를 계산합니다.
-교통 경로 기반 실제 이동거리는 아닙니다.
-
-계산 결과는 다음 필드로 내려갑니다.
-
-| Field                      | Description                   |
-| -------------------------- | ----------------------------- |
-| `route_legs`               | 장소 사이 구간별 거리         |
-| `total_distance_meters`    | 전체 거리, meter              |
-| `total_distance_km`        | 전체 거리, km                 |
-| `total_distance_text`      | UI 표시용 거리                |
-| `distance_from_previous_*` | 각 장소의 이전 장소 기준 거리 |
-
-카카오맵 경로 API나 대중교통 API가 붙으면 이후 실제 이동거리/시간 기반으로 교체할 수 있습니다.
-
-## Mobility Level
-
-`mobility`는 교통 API 없이 MVP 규칙으로 계산한 이동 난이도입니다.
-
-| Transport | Low                                   | Medium                            | High  |
-| --------- | ------------------------------------- | --------------------------------- | ----- |
-| 뚜벅이    | 전체 2.5km 이하, 최대 구간 1.2km 이하 | 전체 6km 이하, 최대 구간 3km 이하 | 그 외 |
-| 대중교통  | 최대 구간 1.5km 이하                  | 최대 구간 5km 이하                | 그 외 |
-| 자차      | 전체 12km 이하                        | 전체 30km 이하                    | 그 외 |
-
-응답에는 `level`, `label`, `summary`, `recommended_transport`가 포함됩니다.
-
-## Route ID
-
-추천 생성 시 저장과 상세조회에 사용할 수 있는 `route_id`를 발급합니다.
-
 ```text
-route-{region_slug}-{theme}-{travel_time}-{transport}-{companion}
+GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
 ```
 
-예시:
-
-```text
-route-danyang-healing-half_day-walk-friends
-```
-
-`recommendation_id`는 추천 결과 카드 자체의 ID이고, `route_id`는 상세조회와 저장 버튼에서 사용하는 동선 ID입니다.
-프론트 저장 버튼은 `route_id`만 보내는 방식으로 정리했습니다.
-
-## API Response Role
-
-추천 응답은 카드와 상세를 분리합니다.
-
-| API                                         | Role           | Main Fields                                                                                 |
-| ------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
-| `POST /api/v1/ai-recommendations`           | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
-| `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리                          |
-| `GET /api/v1/recommendations/today`         | 오늘의 추천    | 카드와 상세 이동용 `route_id`                                                               |
-| `POST /api/v1/routes/from-recommendation`   | 추천 동선 저장 | 요청 body의 `route_id`로 저장                                                               |
-
-## Card Tags
-
-카드의 `tags`는 피그마 카드 UI에 맞춰 3개 고정으로 내려줍니다.
+### Response 주요 필드
 
 ```json
-["힐링", "반나절", "뚜벅이"]
+{
+  "recommendation_id": "sample-danyang-healing-half_day",
+  "route_id": "route-danyang-healing-half_day-walk-friends",
+  "title": "단양 힐링 로컬 코스",
+  "sido": "충청북도",
+  "sigungu": "단양군",
+  "region_story": {
+    "title": "단양 로컬 여행 이야기",
+    "summary": "단양은 남한강을 따라 이어지는 자연 경관과 전통시장, 전망 명소가 가까이 연결된 충북의 대표 체류형 여행지입니다.",
+    "history": "단양은 삼봉 정도전의 이야기가 남아 있는 도담삼봉과 석문, 남한강 물길을 중심으로 형성된 산수 관광 자원이 잘 알려진 지역입니다.",
+    "local_story": "힐링 코스에서는 도담삼봉에서 지역의 첫인상을 만들고, 시장과 로컬 카페를 함께 배치해 방문이 지역 소비로 이어지도록 구성했습니다.",
+    "local_tip": "전망 명소 방문 전후로 단양구경시장이나 로컬 카페를 함께 들르면 짧은 일정에서도 지역 상권 체류 효과를 만들 수 있습니다.",
+    "source": "mvp_sample"
+  },
+  "contribution_info": {
+    "score": 86,
+    "label": "지역 기여도 86점",
+    "description": "지역 기여도는 공식 공공 지표가 아니라 Tripick MVP 내부 점수입니다. 코스에 포함된 장소들의 지역 기여도 평균에 로컬 소비 장소 보너스를 더해 계산합니다.",
+    "formula": "장소별 local_contribution_score 평균 + 로컬 소비 장소 수 * 3점(최대 10점)",
+    "average_place_score": 80,
+    "local_consumption_bonus": 6,
+    "local_consumption_count": 2,
+    "place_count": 4,
+    "is_official_metric": False
+  },
+  "mobility": {
+    "level": "high",
+    "label": "이동 난이도 높음",
+    "summary": "장소 사이 거리가 길어 전체 코스를 도보로만 이동하기에는 부담이 큰 코스입니다.",
+    "recommended_transport": "뚜벅이"
+  },
+  "local_consumption_points": [
+    {
+      "order": 2,
+      "place_id": "sample-danyang-market",
+      "name": "단양구경시장",
+      "category": "로컬시장",
+      "estimated_cost_text": "15,000원~25,000원",
+      "lat": 36.984784,
+      "lng": 128.365889
+    }
+  ],
+  "route_legs": [
+    {
+      "order": 1,
+      "from_place_id": "sample-dodamsambong",
+      "from_name": "도담삼봉",
+      "to_place_id": "sample-danyang-market",
+      "to_name": "단양구경시장",
+      "distance_meters": 304,
+      "distance_km": 0.3,
+      "distance_text": "304m"
+    }
+  ],
+  "places": [
+    {
+      "order": 1,
+      "place_id": "sample-dodamsambong",
+      "name": "도담삼봉",
+      "category": "자연",
+      "stay_minutes": 50,
+      "reason": "단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
+      "contribution_reason": "지역의 첫 방문 만족도를 높여 이후 로컬 상권 방문으로 이어지게 합니다.",
+      "place_story": "도담삼봉은 단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
+      "local_tip": "방문 전후 가까운 전통시장이나 로컬 매장을 함께 둘러보면 더 좋은 동선이 됩니다.",
+      "distance_from_previous_text": null
+    }
+  ],
+  "map_markers": [
+    {
+      "order": 1,
+      "place_id": "sample-dodamsambong",
+      "name": "도담삼봉",
+      "category": "자연",
+      "lat": 36.984539,
+      "lng": 128.369267
+    }
+  ],
+  "legacy_route_payload": {
+    "...": "기존 POST /routes 저장 호환용 payload"
+  },
+  "is_saved": false
+}
 ```
 
-지역 기여도, 로컬 소비 장소 수, 장소 개수처럼 수치성 배지는 `metric_badges`로 분리합니다.
+## POST /api/v1/recommendations
+
+점수 기반 추천 전체 응답을 반환하는 기존 API입니다. 내부 추천 로직 확인, 테스트, 레거시 연동용으로 유지합니다. 프론트 메인 추천 카드는 `POST /ai-recommendations`를 우선 사용합니다.
+
+요청 필드는 code와 한국어 label을 모두 받을 수 있습니다.
 
 ```json
-["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
+{
+  "region_id": "단양군",
+  "theme": "힐링",
+  "travel_time": "반나절",
+  "transport": "뚜벅이",
+  "companion": "친구",
+  "data_source": "sample"
+}
 ```
 
-## Region And Place Story
+## GET /api/v1/places
 
-MVP에서는 지역 설명과 장소 설명을 샘플 데이터 기반으로 생성합니다.
+장소 데이터 목록을 조회합니다. 기본값은 단양 MVP 샘플 데이터입니다.
 
-| Field          | Description                                 |
-| -------------- | ------------------------------------------- |
-| `region_story` | 지역의 여행 맥락, 역사, 로컬 팁             |
-| `place_story`  | 장소별 추천 맥락                            |
-| `local_tip`    | 장소 방문 시 로컬 소비나 체류로 연결되는 팁 |
-
-TourAPI 상세 소개 데이터가 안정적으로 확보되면 `region_story`, `place_story`를 실제 관광정보 기반으로 확장할 수 있습니다.
-
-## Current Limitations
-
-현재 추천 로직은 MVP 구현입니다.
-
-1. 실제 도로/대중교통 이동시간은 반영하지 않습니다.
-2. 거리 계산은 좌표 기반 직선거리입니다.
-3. 지역 기여도는 내부 점수이며 공식 통계 지표가 아닙니다.
-4. 저장 동선은 기존 `routes`, `route_places` 구조를 유지합니다.
-5. 상세한 추천 스냅샷 보존이 필요하면 이후 DB에 JSON snapshot 컬럼 또는 별도 테이블을 추가할 수 있습니다.
-
-## Meeting Explanation
-
-회의에서는 다음처럼 설명하면 됩니다.
+| Query       | 설명                       | 기본값           |
+| ----------- | -------------------------- | ---------------- |
+| `region_id` | 조회할 지역 id             | `region-danyang` |
+| `source`    | `sample`, `tour_api`, `auto` | `sample`         |
+| `theme`     | 테마별 TourAPI 필터 힌트   | 없음             |
+| `limit`     | TourAPI 조회 개수          | `20`             |
 
 ```text
-추천 로직은 현재 MVP 내부 점수 기반입니다.
-사용자가 고른 테마, 이동수단, 동행 조건에 맞는 장소를 우선 점수화하고,
-여행 시간 안에 들어오는 장소를 고른 뒤 실제 동선 순서로 정렬합니다.
-지역 기여도 86점 같은 값은 공식 지표가 아니라,
-코스에 포함된 장소들의 local_contribution_score 평균에 로컬 소비 장소 보너스를 더한 내부 점수입니다.
-프론트에서는 카드 API와 상세조회 API를 분리해서,
-카드에서는 3개 배지와 장소 미리보기만 보여주고 상세에서는 전체 장소, 거리, 이동 난이도, AI 추천 이유를 보여주면 됩니다.
+GET /api/v1/places?source=tour_api&region_id=region-danyang&theme=food&limit=10
 ```
+
+TourAPI 응답이 비어 있거나 실패하면 샘플 데이터로 fallback합니다.
+
+## Selection Options
+
+```text
+GET /api/v1/recommendations/options
+GET /api/v1/recommendations/selection-options
+```
+
+`selection-options`는 내 여행 찾기 화면에서 필요한 선택지를 한 번에 반환합니다.
+
+| 화면 요소                     | 응답 필드                |
+| ----------------------------- | ------------------------ |
+| 지역 직접 선택 / AI 지역 추천 | `region_selection_modes` |
+| 권역 선택                     | `area_groups`            |
+| 권역별 인구감소지역           | `regions_by_area_group`  |
+| 테마 선택                     | `themes`                 |
+| 여행 시간 선택                | `travel_times`           |
+| 이동수단 선택                 | `transports`             |
+| 동행 선택                     | `companions`             |
+
+## Save Route
+
+### Recommended Save API
+
+저장 버튼은 이 API를 사용합니다. 프론트는 추천 카드 또는 상세 응답의 `route_id`만 보내면 됩니다.
+
+```http
+POST /api/v1/routes/from-recommendation
+```
+
+```json
+{
+  "route_id": "route-danyang-healing-half_day-walk-friends"
+}
+```
+
+```json
+{
+  "message": "동선이 성공적으로 저장되었습니다.",
+  "route_id": "saved-route-id",
+  "saved_route_id": "saved-route-id",
+  "source_route_id": "route-danyang-healing-half_day-walk-friends",
+  "is_saved": true
+}
+```
+
+필드 의미:
+
+| 필드              | 의미                                         |
+| ----------------- | -------------------------------------------- |
+| `source_route_id` | 추천 카드/상세조회에서 받은 원본 추천 동선 ID |
+| `saved_route_id`  | DB `routes` 테이블에 저장된 동선 ID          |
+| `route_id`        | 기존 호환용 필드. `saved_route_id`와 동일    |
+| `is_saved`        | 저장 성공 여부                               |
+
+### Legacy Save API
+
+기존 방식도 유지합니다.
+
+```http
+POST /api/v1/routes
+```
+
+body에는 추천 상세 응답의 `legacy_route_payload`를 전달합니다.
+
+## Saved Route History
+
+```text
+GET    /api/v1/routes
+GET    /api/v1/routes/{saved_route_id}
+DELETE /api/v1/routes/{saved_route_id}
+```
+
+현재 저장 DB 구조는 기존 `routes`, `route_places` 테이블을 유지합니다. 따라서 저장 후 조회는 저장된 동선/장소 중심으로 반환됩니다. `region_story`, `mobility`, `contribution_info`까지 저장 후 그대로 보존하려면 이후 JSON snapshot 컬럼 또는 별도 테이블 추가가 필요합니다.
+
+## Scoring Policy
+
+장소 추천 점수는 아래 기준으로 계산합니다.
+
+| 기준                                             | 점수                            |
+| ------------------------------------------------ | ------------------------------- |
+| 선택 테마와 장소 태그 일치                     | `+35`                           |
+| 이동수단과 장소 이동 태그 일치                   | `+20`                           |
+| 이동수단 불일치                                  | `-25`                           |
+| 동행 유형 일치                                   | `+10`                           |
+| 장소 지역 기여도 반영                            | `local_contribution_score * 0.2` |
+| 맛집/로컬시장/지역활성화 테마에서 로컬 소비 장소 | `+20`                           |
+| 지역활성화 테마에서 지역 기여도 80점 이상        | `+15`                           |
+
+코스의 `contribution_score`는 공식 공공 지표가 아니라 MVP 내부 점수입니다.
+
+```text
+지역 기여도 = 장소별 local_contribution_score 평균 + 로컬 소비 장소 수 * 3점(최대 10점)
+```
+
+단양 힐링 코스 예시:
+
+```text
+장소 평균 80점 + 로컬 소비 2곳 보너스 6점 = 지역 기여도 86점
+```
+
+## Frontend Mapping
+
+| 화면             | API                                  | 주요 필드                                                            |
+| ---------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| 홈 오늘의 추천   | `GET /recommendations/today`         | `card`, `route_id`, `detail_api_path`                                |
+| 추천 카드        | `POST /ai-recommendations`           | `title`, `summary`, `tags`, `metric_badges`, `place_preview_names`   |
+| 동선 상세        | `GET /ai-recommendations/{route_id}` | `ai_reason`, `places`, `route_legs`, `map_markers`, `region_story`   |
+| 지도 탭          | `GET /ai-recommendations/{route_id}` | `map_markers`, `places[].lat`, `places[].lng`                        |
+| 저장 버튼        | `POST /routes/from-recommendation`   | request `route_id`, response `saved_route_id`                        |
+| 저장한 동선      | `GET /routes`                        | `route_id`, `title`, `created_at`, `place_count`                     |
