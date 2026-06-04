@@ -114,6 +114,20 @@ def test_get_transportation_segments_recommends_car_without_api_key(monkeypatch)
     assert result.details[0].transport == "자차"
 
 
+def test_get_transportation_segments_can_use_recommendation_route_id(monkeypatch) -> None:
+    monkeypatch.setattr(odsay_service.settings, "odsay_api_key", None)
+    monkeypatch.setattr(route_service, "get_route_detail", lambda route_id: None)
+
+    result = odsay_service.get_transportation_segments(
+        "route-danyang-healing-half_day-walk-friends"
+    )
+
+    assert result is not None
+    assert result.firstStart == "도담삼봉"
+    assert result.details[0].start == "도담삼봉"
+    assert result.details[0].arrival == "단양구경시장"
+
+
 def test_route_transportation_endpoint_returns_404(monkeypatch) -> None:
     monkeypatch.setattr(routes_endpoint, "get_transportation_segments", lambda route_id: None)
 

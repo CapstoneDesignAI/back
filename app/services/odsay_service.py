@@ -3,8 +3,10 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
+from app.schemas.recommendations import RecommendationRequest
 from app.schemas.routes import RouteTransportationDetail, RouteTransportationResponse
 from app.services import route_service
+from app.services.recommendations import create_recommendation
 
 
 @dataclass
@@ -16,7 +18,7 @@ class TransportationLeg:
 
 
 def get_transportation_segments(route_id: str) -> RouteTransportationResponse | None:
-    route = route_service.get_route_detail(route_id)
+    route = _get_route_detail(route_id)
     if not route:
         return None
 
@@ -47,7 +49,7 @@ def get_transportation_segments(route_id: str) -> RouteTransportationResponse | 
         title="🚌 대중교통 가능" if available else "🚗 자차 추천",
         totalTimeText=_format_minutes(total_minutes) if total_minutes else "",
         summaryText=(
-            f"총 {_format_minutes(total_minutes)}분 · 환승 {transfer_count}회"
+            f"총 {_format_minutes(total_minutes)} · 환승 {transfer_count}회"
             if available
             else "대중교통 경로 없음 · 자차 이동 추천"
         ),
@@ -55,6 +57,57 @@ def get_transportation_segments(route_id: str) -> RouteTransportationResponse | 
         lastArrival=details[-1].arrival,
         details=details,
     )
+
+
+def _get_route_detail(route_id: str) -> dict | None:
+    try:
+        route = route_service.get_route_detail(route_id)
+    except Exception as exc:
+        print(f"❌ 저장 동선 조회 중 에러 발생: {exc}")
+        route = None
+
+    if route:
+        return route
+
+    return _get_recommendation_route_detail(route_id)
+
+
+def _get_recommendation_route_detail(route_id: str) -> dict | None:
+    route_parts = route_id.split("-")
+    if len(route_parts) != 6 or route_parts[0] != "route":
+        return None
+
+    _, region_slug, theme, travel_time, transport, companion = route_parts
+    recommendation = create_recommendation(
+        RecommendationRequest(
+            region_id=f"region-{region_slug}",
+            theme=theme,
+            travel_time=travel_time,
+            transport=transport,
+            companion=companion,
+        )
+    )
+
+    return {
+        "route_id": route_id,
+        "title": recommendation.title,
+        "created_at": "",
+        "places": [
+            {
+                "visit_order": place.visit_order,
+                "place_id": place.place_id,
+                "name": place.name,
+                "address": place.address,
+                "lat": place.lat,
+                "lng": place.lng,
+                "image_url": place.image_url or "",
+                "description": place.reason,
+                "tags": place.tags,
+                "category": place.category,
+            }
+            for place in recommendation.places
+        ],
+    }
 
 
 def _build_leg(start_place: dict, arrival_place: dict) -> TransportationLeg:
