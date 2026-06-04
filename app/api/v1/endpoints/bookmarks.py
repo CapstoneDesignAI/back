@@ -12,10 +12,10 @@ router = APIRouter(prefix="/bookmarks")
     summary="장소 찜하기",
 )
 def add_bookmark(payload: BookmarkAddRequest, user_id: str = Depends(get_current_user)):
-    result = bookmark_service.add_bookmark(user_id, payload)
-    if not result:
+    success = bookmark_service.add_bookmark(user_id, payload)
+    if not success:
         raise HTTPException(status_code=500, detail="즐겨찾기 추가에 실패했습니다.")
-    return result
+    return success
 
 @router.get("", response_model=list[BookmarkedPlaceResponse], summary="찜한 장소 목록 조회")
 def get_bookmarked_places(folder_id: str | None = None, user_id: str = Depends(get_current_user)):
