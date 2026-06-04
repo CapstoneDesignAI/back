@@ -28,13 +28,13 @@ class BookmarkAddRequest(BaseModel):
 
 class BookmarkAddResponse(BaseModel):
     message: str
-    bookmark_id: str | None = None
+    bookmark_id: str
     place_id: str
     is_newly_created_place: bool
     
 class BookmarkedPlaceResponse(BaseModel):
     bookmark_id: str
-    folder_id: str | None = None
+    folder_id: str 
     place_id: str
     name: str
     address: str
