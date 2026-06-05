@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     tour_api_service_version: str = "2"
     tour_api_mobile_os: str = "ETC"
     tour_api_mobile_app: str = "TRIP_RE"
+    llm_provider: str = "openai"
+    llm_timeout_seconds: float = 20.0
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
