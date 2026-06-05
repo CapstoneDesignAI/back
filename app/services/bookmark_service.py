@@ -1,10 +1,12 @@
 from app.db.base import get_supabase
-from app.schemas.bookmarks import BookmarkAddRequest, BookmarkedPlaceResponse
+from app.schemas.bookmarks import BookmarkAddRequest, BookmarkAddResponse, BookmarkedPlaceResponse
+from app.services import place_service
 
-def add_bookmark(user_id: str, request_data: BookmarkAddRequest) -> bool:
+def add_bookmark(user_id: str, payload: BookmarkAddRequest) -> BookmarkAddResponse | None:
     supabase = get_supabase()
+    
     try:
-        target_folder_id = request_data.folder_id
+        target_folder_id = payload.folder_id
         
         if not target_folder_id:
             folder_res = supabase.table("folders") \
@@ -16,18 +18,36 @@ def add_bookmark(user_id: str, request_data: BookmarkAddRequest) -> bool:
             if folder_res.data:
                 target_folder_id = folder_res.data[0]["id"]
             else:
-                return False
-            
-        supabase.table("bookmarks").insert({
+                return None
+
+        place_id = payload.place_id
+        is_newly_created_place = False
+
+        if payload.place:
+            place_id, is_newly_created_place = place_service.create_or_get_place(payload.place)
+
+        if not place_id:
+            return None
+
+        bookmark_res = supabase.table("bookmarks").insert({
             "user_id": user_id,
             "folder_id": target_folder_id,
-            "place_id": request_data.place_id
+            "place_id": place_id
         }).execute()
-        
-        return True
+
+        bookmark_id = None
+        if bookmark_res.data:
+            bookmark_id = str(bookmark_res.data[0].get("id"))
+
+        return BookmarkAddResponse(
+            message="장소가 즐겨찾기에 성공적으로 추가되었습니다.",
+            bookmark_id=bookmark_id,
+            place_id=place_id,
+            is_newly_created_place=is_newly_created_place,
+        )
     except Exception as e:
         print(f"❌ 즐겨찾기 추가 중 에러 발생: {e}")
-        return False
+        return None
 
 
 def get_bookmarked_places(user_id: str, folder_id: str | None = None) -> list[BookmarkedPlaceResponse]:
