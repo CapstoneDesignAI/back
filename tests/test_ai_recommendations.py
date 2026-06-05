@@ -314,7 +314,7 @@ def test_ai_recommendation_detail_returns_route_by_route_id() -> None:
     assert data["places"][1]["local_tip"] == (
         "이 장소에서는 식사, 카페, 간식 등 실제 지역 상권 소비로 이어질 수 있습니다."
     )
-    assert data["map_markers"][0]["name"] == "도담삼봉"
+    assert "map_markers" not in data
     assert data["legacy_route_payload"]["title"] == data["title"]
 
 

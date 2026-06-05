@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     tour_photo_api_mobile_os: str = "ETC"
     tour_photo_api_mobile_app: str = "TRIPICK"
     tour_photo_api_timeout_seconds: float = 10.0
+    tour_api_mobile_app: str = "TRIP_RE"
     llm_provider: str = "openai"
     llm_timeout_seconds: float = 20.0
     gemini_api_key: str | None = None

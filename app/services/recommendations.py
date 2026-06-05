@@ -25,7 +25,6 @@ from app.schemas.recommendations import (
     RegionStory,
     RouteRecommendationPlace,
     RouteLeg,
-    RouteMapMarker,
     SelectionModeItem,
     SelectionOptionsResponse,
     TodayRecommendationCard,
@@ -485,7 +484,6 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         ai_reason_detail=ai_reason_detail,
         places=places,
         route_legs=route_legs,
-        map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
             summary=summary,

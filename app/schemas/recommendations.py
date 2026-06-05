@@ -571,7 +571,6 @@ class RecommendationResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
-    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
@@ -613,7 +612,6 @@ class RecommendationDetailResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
-    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
