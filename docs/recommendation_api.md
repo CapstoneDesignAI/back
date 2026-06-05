@@ -209,11 +209,10 @@ GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
   "transport_label": "뚜벅이",
   "companion_label": "친구",
   "contribution_score": 86,
-  "estimated_duration_text": "5시간 20분",
-  "estimated_cost_text": "35,000원~55,000원",
-  "local_consumption_text": "로컬 소비 장소 2곳 포함",
-  "primary_badges": ["힐링", "반나절", "뚜벅이"],
-  "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
+  "estimated_duration_minutes": 320,
+  "estimated_cost_min": 35000,
+  "estimated_cost_max": 55000,
+  "local_consumption_count": 2,
   "place_count": 4,
   "total_stay_minutes": 260,
   "total_distance_meters": 12300,
@@ -233,6 +232,7 @@ GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
   "places": [
     {
       "order": 1,
+      "visit_order": 1,
       "place_id": "sample-dodamsambong",
       "name": "도담삼봉",
       "category": "자연",
