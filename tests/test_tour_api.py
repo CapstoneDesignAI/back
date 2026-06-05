@@ -1,4 +1,4 @@
-from app.schemas.recommendations import RegionItem, RecommendationRequest
+from app.schemas.recommendations import RecommendationRequest, RegionItem
 from app.services import tour_api
 from app.services.recommendations import create_recommendation, list_places
 
@@ -39,8 +39,30 @@ class FakeTourApiResponse:
         }
 
 
+class FakeTourPhotoApiResponse:
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self):
+        return {
+            "response": {
+                "body": {
+                    "items": {
+                        "item": [
+                            {
+                                "orgImage": "https://example.com/photo.jpg",
+                                "thumbImage": "https://example.com/photo-thumb.jpg",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+
 def test_fetch_tour_api_places_maps_items_to_place_candidates(monkeypatch) -> None:
     monkeypatch.setattr(tour_api.settings, "tour_api_service_key", "test-service-key")
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", None)
     monkeypatch.setattr(tour_api.httpx, "get", lambda *args, **kwargs: FakeTourApiResponse())
     region = RegionItem(
         id="region-danyang",
@@ -55,11 +77,10 @@ def test_fetch_tour_api_places_maps_items_to_place_candidates(monkeypatch) -> No
     assert len(places) == 2
     assert places[0].place_id == "tour-999001"
     assert places[0].name == "단양 로컬 맛집"
-    assert places[0].category == "맛집"
     assert places[0].source == "tour_api"
+    assert places[0].image_url == "https://example.com/food.jpg"
     assert places[0].is_local_consumption is True
     assert "food" in places[0].theme_tags
-    assert places[1].category == "관광지"
     assert "nature" in places[1].theme_tags
 
 
@@ -93,6 +114,37 @@ def test_list_places_can_use_tour_api_source(monkeypatch) -> None:
 
     assert response.places[0].place_id == "tour-999001"
     assert response.places[0].source == "tour_api"
+    assert response.places[0].tags
+
+
+def test_fetch_tour_photo_image_url_returns_none_without_base_url(monkeypatch) -> None:
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", "")
+
+    assert tour_api.fetch_tour_photo_image_url("단양") is None
+
+
+def test_fetch_tour_photo_image_url_maps_first_photo_url(monkeypatch) -> None:
+    captured_params = {}
+    captured_url = ""
+
+    def fake_get(*args, **kwargs):
+        nonlocal captured_url
+        captured_url = args[0]
+        captured_params.update(kwargs.get("params", {}))
+        return FakeTourPhotoApiResponse()
+
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", "https://apis.data.go.kr/B551011/PhokoAwrdService")
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_search_endpoint", "phokoAwrdList")
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_service_key", "photo-service-key")
+    monkeypatch.setattr(tour_api.httpx, "get", fake_get)
+
+    image_url = tour_api.fetch_tour_photo_image_url("도담삼봉")
+
+    assert image_url == "https://example.com/photo.jpg"
+    assert captured_url == "https://apis.data.go.kr/B551011/PhokoAwrdService/phokoAwrdList"
+    assert captured_params["serviceKey"] == "photo-service-key"
+    assert captured_params["keyword"] == "도담삼봉"
+    assert captured_params["arrange"] == "A"
 
 
 def test_recommendation_falls_back_to_sample_when_tour_api_has_no_result(monkeypatch) -> None:

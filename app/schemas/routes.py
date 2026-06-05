@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class RoutePlaceItem(BaseModel):
     visit_order: int
@@ -21,6 +21,21 @@ class RouteListItem(BaseModel):
 class RouteCreateResponse(BaseModel):
     message: str
     route_id: str
+
+class RouteSaveFromRecommendationRequest(BaseModel):
+    route_id: str = Field(
+        ...,
+        description="추천 카드/상세조회에서 전달하는 추천 동선 route_id",
+    )
+
+class RouteSaveFromRecommendationResponse(BaseModel):
+    message: str
+    route_id: str
+    saved_route_id: str
+    source_route_id: str
+    source_detail_api_path: str
+    saved_detail_api_path: str
+    is_saved: bool = True
 
 class RouteDetailResponse(BaseModel):
     route_id: str

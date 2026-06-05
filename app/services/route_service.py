@@ -1,6 +1,7 @@
 from app.db.base import get_supabase
 from app.schemas.routes import RouteListItem, RouteDetailResponse
 from app.schemas.recommendations import RecommendationSavePayload
+from app.services.recommendations import get_recommendation_detail
 
 def get_routes(user_id: str) -> list[RouteListItem]:
     supabase = get_supabase()
@@ -92,6 +93,17 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
         print(f"❌ DB 저장 중 에러 발생: {e}")
         return None
     
+def create_recommended_route_from_route_id(user_id: str, route_id: str) -> str | None:
+    recommendation = get_recommendation_detail(route_id)
+    if recommendation is None:
+        return None
+
+    return create_recommended_route(
+        user_id=user_id,
+        route_data=recommendation.legacy_route_payload,
+    )
+
+
 def delete_route(user_id: str, route_id: str) -> bool:
     supabase = get_supabase()
     try:
