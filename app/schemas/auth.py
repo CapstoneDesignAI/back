@@ -6,6 +6,9 @@ class KakaoLoginUrlResponse(BaseModel):
     authorization_url: str
     state: str
 
+class LogoutResponse(BaseModel):
+    message: str
+
 class KakaoTokenResponse(BaseModel):
     token_type: str
     access_token: str

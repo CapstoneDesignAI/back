@@ -21,6 +21,13 @@ def test_get_kakao_login_url() -> None:
     assert data["state"]
 
 
+def test_logout() -> None:
+    response = client.post("/api/v1/auth/logout")
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "로그아웃 되었습니다."}
+
+
 def test_kakao_callback(monkeypatch) -> None:
     async def fake_exchange_code_for_token(code: str) -> KakaoTokenResponse:
         assert code == "test-code"
