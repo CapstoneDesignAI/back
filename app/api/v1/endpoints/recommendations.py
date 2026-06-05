@@ -97,7 +97,16 @@ def read_regions(
     return list_regions(area_group=area_group)
 
 
-@router.get("/places", response_model=PlaceListResponse, summary="MVP 장소 데이터 목록")
+@router.get(
+    "/places",
+    response_model=PlaceListResponse,
+    summary="후보 장소 데이터 확인용 목록",
+    description=(
+        "추천 API가 사용하는 후보 장소 데이터를 확인하는 보조 API입니다. "
+        "프론트 추천 카드/상세 화면은 ai-recommendations 응답의 장소 정보를 사용하므로 "
+        "일반 사용자 플로우에서 필수로 호출할 필요는 없습니다."
+    ),
+)
 def read_places(
     region_id: str | None = Query(default=None),
     source: str = Query(default="sample", pattern="^(sample|tour_api|auto)$"),
@@ -110,6 +119,8 @@ def read_places(
 @router.get(
     "/recommendations/options",
     response_model=RecommendationOptionsResponse,
+    description="프론트 핵심 플로우에서 직접 호출하지 않는 내부 확인용/후순위 API입니다.",
+    include_in_schema=False,
     summary="추천 필터 선택지",
 )
 def read_recommendation_options() -> RecommendationOptionsResponse:
@@ -119,6 +130,8 @@ def read_recommendation_options() -> RecommendationOptionsResponse:
 @router.get(
     "/recommendations/selection-options",
     response_model=SelectionOptionsResponse,
+    description="프론트에서 선택지 문구를 직접 반영하기로 하여 Swagger 핵심 명세에서는 숨깁니다.",
+    include_in_schema=False,
     summary="내 여행 찾기 화면 선택지",
 )
 def read_selection_options() -> SelectionOptionsResponse:

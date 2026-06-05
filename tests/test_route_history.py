@@ -134,6 +134,10 @@ def test_save_route_from_recommendation_endpoint_accepts_route_id(monkeypatch) -
         "route_id": "route-test-id",
         "saved_route_id": "route-test-id",
         "source_route_id": "route-danyang-healing-half_day-walk-friends",
+        "source_detail_api_path": (
+            "/api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends"
+        ),
+        "saved_detail_api_path": "/api/v1/routes/route-test-id",
         "is_saved": True,
     }
     assert fake_supabase.calls[0][0] == "routes"

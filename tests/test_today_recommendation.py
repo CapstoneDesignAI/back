@@ -15,6 +15,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
         data["detail_api_path"]
         == "/api/v1/ai-recommendations/route-danyang-healing-half_day-car-friends"
     )
+    assert data["save_api_path"] == "/api/v1/routes/from-recommendation"
     assert data["card"] == {
         "recommendation_id": "sample-danyang-healing-half_day",
         "route_id": "route-danyang-healing-half_day-car-friends",

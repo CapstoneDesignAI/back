@@ -237,6 +237,7 @@ def get_today_recommendation(
         recommendation_id=recommendation.recommendation_id,
         route_id=recommendation.route_id,
         detail_api_path=f"/api/v1/ai-recommendations/{recommendation.route_id}",
+        save_api_path="/api/v1/routes/from-recommendation",
         card=_to_today_card(recommendation),
         recommendation=_to_detail_response(recommendation),
     )

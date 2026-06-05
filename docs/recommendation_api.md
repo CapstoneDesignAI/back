@@ -43,6 +43,26 @@ TOUR_API_MOBILE_APP=TRIP_RE
 
 ## Recommendation Flow
 
+### Today Recommendation Save Flow
+
+오늘의 추천에서 받은 동선을 저장하고 다시 상세조회할 때는 아래 흐름을 사용합니다.
+
+1. `GET /api/v1/recommendations/today`
+   - `route_id`: 추천 원본 동선 ID
+   - `detail_api_path`: 추천 상세 조회 API
+   - `save_api_path`: 추천 동선 저장 API
+2. 사용자가 저장 버튼 클릭
+   - `POST /api/v1/routes/from-recommendation`
+   - request body: `{ "route_id": today.route_id }`
+3. 저장 응답
+   - `source_route_id`: 추천 원본 동선 ID
+   - `source_detail_api_path`: AI 추천 상세 조회 API
+   - `saved_route_id`: DB에 저장된 동선 ID
+   - `saved_detail_api_path`: 저장 동선 상세 조회 API
+
+프론트에서 AI 추천 상세 화면을 다시 보여줄 때는 `source_detail_api_path`를 사용합니다.
+저장된 DB 동선 상세 화면을 보여줄 때는 `saved_detail_api_path`를 사용합니다.
+
 1. 홈에서 오늘의 추천 조회: `GET /recommendations/today`
 2. 내 여행 찾기에서 조건 선택
 3. 추천 카드 생성: `POST /ai-recommendations`
@@ -63,6 +83,7 @@ TOUR_API_MOBILE_APP=TRIP_RE
   "recommendation_id": "sample-danyang-healing-half_day",
   "route_id": "route-danyang-healing-half_day-car-friends",
   "detail_api_path": "/api/v1/ai-recommendations/route-danyang-healing-half_day-car-friends",
+  "save_api_path": "/api/v1/routes/from-recommendation",
   "card": {
     "recommendation_id": "sample-danyang-healing-half_day",
     "route_id": "route-danyang-healing-half_day-car-friends",
@@ -258,6 +279,10 @@ GET /api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends
 
 ## GET /api/v1/places
 
+> 내부 확인용/후순위 API입니다. 프론트 추천 카드와 동선 상세 화면은
+> `POST /api/v1/ai-recommendations`, `GET /api/v1/ai-recommendations/{route_id}`
+> 응답에 포함된 장소 정보를 사용하므로 이 API를 필수로 호출하지 않습니다.
+
 장소 데이터 목록을 조회합니다. 기본값은 단양 MVP 샘플 데이터입니다.
 
 | Query | 설명 | 기본값 |
@@ -274,6 +299,9 @@ GET /api/v1/places?source=tour_api&region_id=region-danyang&theme=food&limit=10
 TourAPI 응답이 비어 있거나 실패하면 샘플 데이터로 fallback합니다.
 
 ## Selection Options
+
+> 내부 확인용/후순위 API입니다. 프론트에서 선택지 문구를 직접 반영하기로 했기 때문에
+> 노션/Swagger 핵심 API 명세에서는 제외합니다. 기존 확인 흐름을 위해 endpoint 자체는 유지합니다.
 
 ```text
 GET /api/v1/recommendations/options
@@ -314,6 +342,8 @@ POST /api/v1/routes/from-recommendation
   "route_id": "saved-route-id",
   "saved_route_id": "saved-route-id",
   "source_route_id": "route-danyang-healing-half_day-walk-friends",
+  "source_detail_api_path": "/api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends",
+  "saved_detail_api_path": "/api/v1/routes/saved-route-id",
   "is_saved": true
 }
 ```
@@ -325,6 +355,8 @@ POST /api/v1/routes/from-recommendation
 | `source_route_id` | 추천 카드/상세조회에서 받은 원본 추천 동선 ID |
 | `saved_route_id` | DB `routes` 테이블에 저장된 동선 ID |
 | `route_id` | 기존 호환용 필드. `saved_route_id`와 동일 |
+| `source_detail_api_path` | AI 추천 상세 화면 재조회용 API |
+| `saved_detail_api_path` | 저장된 DB 동선 상세 조회용 API |
 | `is_saved` | 저장 성공 여부 |
 
 ### Legacy Save API
