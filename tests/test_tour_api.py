@@ -39,6 +39,27 @@ class FakeTourApiResponse:
         }
 
 
+class FakeTourPhotoApiResponse:
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self):
+        return {
+            "response": {
+                "body": {
+                    "items": {
+                        "item": [
+                            {
+                                "orgImage": "https://example.com/photo.jpg",
+                                "thumbImage": "https://example.com/photo-thumb.jpg",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+
 def test_fetch_tour_api_places_maps_items_to_place_candidates(monkeypatch) -> None:
     monkeypatch.setattr(tour_api.settings, "tour_api_service_key", "test-service-key")
     monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", None)
@@ -94,6 +115,36 @@ def test_list_places_can_use_tour_api_source(monkeypatch) -> None:
     assert response.places[0].place_id == "tour-999001"
     assert response.places[0].source == "tour_api"
     assert response.places[0].tags
+
+
+def test_fetch_tour_photo_image_url_returns_none_without_base_url(monkeypatch) -> None:
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", "")
+
+    assert tour_api.fetch_tour_photo_image_url("단양") is None
+
+
+def test_fetch_tour_photo_image_url_maps_first_photo_url(monkeypatch) -> None:
+    captured_params = {}
+    captured_url = ""
+
+    def fake_get(*args, **kwargs):
+        nonlocal captured_url
+        captured_url = args[0]
+        captured_params.update(kwargs.get("params", {}))
+        return FakeTourPhotoApiResponse()
+
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_base_url", "https://apis.data.go.kr/B551011/PhokoAwrdService")
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_search_endpoint", "phokoAwrdList")
+    monkeypatch.setattr(tour_api.settings, "tour_photo_api_service_key", "photo-service-key")
+    monkeypatch.setattr(tour_api.httpx, "get", fake_get)
+
+    image_url = tour_api.fetch_tour_photo_image_url("도담삼봉")
+
+    assert image_url == "https://example.com/photo.jpg"
+    assert captured_url == "https://apis.data.go.kr/B551011/PhokoAwrdService/phokoAwrdList"
+    assert captured_params["serviceKey"] == "photo-service-key"
+    assert captured_params["keyword"] == "도담삼봉"
+    assert captured_params["arrange"] == "A"
 
 
 def test_recommendation_falls_back_to_sample_when_tour_api_has_no_result(monkeypatch) -> None:
