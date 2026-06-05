@@ -80,6 +80,8 @@ def save_recommended_route_from_route_id(
         route_id=saved_route_id,
         saved_route_id=saved_route_id,
         source_route_id=request_data.route_id,
+        source_detail_api_path=f"/api/v1/ai-recommendations/{request_data.route_id}",
+        saved_detail_api_path=f"/api/v1/routes/{saved_route_id}",
         is_saved=True,
     )
 

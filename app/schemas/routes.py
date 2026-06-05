@@ -33,6 +33,8 @@ class RouteSaveFromRecommendationResponse(BaseModel):
     route_id: str
     saved_route_id: str
     source_route_id: str
+    source_detail_api_path: str
+    saved_detail_api_path: str
     is_saved: bool = True
 
 class RouteDetailResponse(BaseModel):
