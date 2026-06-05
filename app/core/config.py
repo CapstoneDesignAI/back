@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     tour_api_mobile_app: str = "TRIP_RE"
     odsay_api_key: str | None = None
     odsay_api_base_url: str = "https://api.odsay.com/v1/api"
+    tour_api_mobile_app: str = "TRIPICK"
+    tour_photo_api_service_key: str | None = None
+    tour_photo_api_base_url: str = "https://apis.data.go.kr/B551011/PhokoAwrdService"
+    tour_photo_api_search_endpoint: str = "phokoAwrdList"
+    tour_photo_api_mobile_os: str = "ETC"
+    tour_photo_api_mobile_app: str = "TRIPICK"
+    tour_photo_api_timeout_seconds: float = 10.0
     llm_provider: str = "openai"
     llm_timeout_seconds: float = 20.0
     gemini_api_key: str | None = None
