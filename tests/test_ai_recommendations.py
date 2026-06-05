@@ -133,11 +133,7 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
     assert data["sigungu"] == "단양군"
     assert data["region_story"]["title"] == "단양 로컬 여행 이야기"
     assert data["region_story"]["source"] == "mvp_sample"
-<<<<<<< HEAD
     assert data["tags"] == ["힐링", "반나절", "뚜벅이"]
-=======
-    assert data["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     assert data["mobility"]["level"] == "high"
     assert data["mobility"]["recommended_transport"] == "뚜벅이"
     assert data["contribution_info"]["score"] == 86
@@ -148,11 +144,7 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
         "sample-danyang-market",
         "sample-cafe-sann",
     ]
-<<<<<<< HEAD
     assert len(data["tags"]) == 3
-=======
-    assert len(data["primary_badges"]) == 3
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     assert data["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
     assert data["place_preview"][1]["name"] == "단양구경시장"
@@ -285,11 +277,7 @@ def test_ai_recommendation_detail_returns_route_by_route_id() -> None:
     assert data["places"][1]["local_tip"] == (
         "이 장소에서는 식사, 카페, 간식 등 실제 지역 상권 소비로 이어질 수 있습니다."
     )
-<<<<<<< HEAD
     assert "map_markers" not in data
-=======
-    assert data["map_markers"][0]["name"] == "도담삼봉"
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     assert data["legacy_route_payload"]["title"] == data["title"]
 
 

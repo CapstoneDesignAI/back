@@ -78,19 +78,11 @@ def test_recommendation_response_contract_for_frontend() -> None:
     assert data["card"]["sido"] == "충청북도"
     assert data["card"]["sigungu"] == "단양군"
     assert data["card"]["region_story"] == data["region_story"]
-<<<<<<< HEAD
     assert data["card"]["tags"] == ["힐링", "반나절", "뚜벅이"]
     assert data["card"]["mobility"] == data["mobility"]
     assert data["card"]["contribution_info"] == data["contribution_info"]
     assert data["card"]["local_consumption_points"] == data["local_consumption_points"]
     assert len(data["card"]["tags"]) == 3
-=======
-    assert data["card"]["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
-    assert data["card"]["mobility"] == data["mobility"]
-    assert data["card"]["contribution_info"] == data["contribution_info"]
-    assert data["card"]["local_consumption_points"] == data["local_consumption_points"]
-    assert len(data["card"]["primary_badges"]) == 3
->>>>>>> 38d437c (Feat: 추천 동선 상세 정보 보강)
     assert data["card"]["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["card"]["place_count_text"] == "장소 4곳"
     assert data["card"]["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
