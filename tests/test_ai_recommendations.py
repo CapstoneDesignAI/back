@@ -30,7 +30,7 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
     assert data["sigungu"] == "단양군"
     assert data["region_story"]["title"] == "단양 로컬 여행 이야기"
     assert data["region_story"]["source"] == "mvp_sample"
-    assert data["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
+    assert data["tags"] == ["힐링", "반나절", "뚜벅이"]
     assert data["mobility"]["level"] == "high"
     assert data["mobility"]["recommended_transport"] == "뚜벅이"
     assert data["contribution_info"]["score"] == 86
@@ -41,11 +41,11 @@ def test_ai_recommendations_uses_scored_recommendation_response() -> None:
         "sample-danyang-market",
         "sample-cafe-sann",
     ]
-    assert len(data["primary_badges"]) == 3
+    assert len(data["tags"]) == 3
     assert data["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
     assert data["place_preview"][1]["name"] == "단양구경시장"
-    assert data["place_preview"][1]["tags"] == ["food", "local_market"]
+    assert data["place_preview"][1]["tags"] == ["맛집", "로컬시장"]
     assert data["place_preview"][1]["is_local_consumption"] is True
     assert data["place_count"] == 4
     assert "places" not in data
@@ -70,7 +70,7 @@ def test_ai_recommendations_accepts_english_alias_values() -> None:
 
     assert data["recommendation_id"] == "sample-danyang-healing-half_day"
     assert data["route_id"] == "route-danyang-healing-half_day-walk-friends"
-    assert len(data["primary_badges"]) == 3
+    assert len(data["tags"]) == 3
     assert len(data["metric_badges"]) == 3
     assert data["place_count"] == len(data["place_preview_names"]) + 1
     assert data["place_preview"][0]["order"] == 1
@@ -95,7 +95,7 @@ def test_ai_recommendations_defaults_to_ai_region_when_region_is_missing() -> No
     assert data["route_id"] == "route-danyang-nature-full_day-car-family"
     assert data["sido"] == "충청북도"
     assert data["sigungu"] == "단양군"
-    assert data["primary_badges"] == ["자연투어", "하루", "자차"]
+    assert data["tags"] == ["자연투어", "하루", "자차"]
 
 
 def test_ai_recommendations_accepts_mvp_korean_option_labels() -> None:
@@ -116,7 +116,7 @@ def test_ai_recommendations_accepts_mvp_korean_option_labels() -> None:
     assert data["route_id"] == "route-danyang-revitalization-3hours-walk-couple"
     assert data["sido"] == "충청북도"
     assert data["sigungu"] == "단양군"
-    assert data["primary_badges"] == ["지역활성화 추천", "3시간", "뚜벅이"]
+    assert data["tags"] == ["지역활성화 추천", "3시간", "뚜벅이"]
 
 
 def test_recommendations_endpoint_accepts_korean_labels() -> None:
@@ -174,7 +174,7 @@ def test_ai_recommendation_detail_returns_route_by_route_id() -> None:
     assert data["places"][1]["local_tip"] == (
         "이 장소에서는 식사, 카페, 간식 등 실제 지역 상권 소비로 이어질 수 있습니다."
     )
-    assert data["map_markers"][0]["name"] == "도담삼봉"
+    assert "map_markers" not in data
     assert data["legacy_route_payload"]["title"] == data["title"]
 
 

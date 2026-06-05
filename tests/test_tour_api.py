@@ -93,6 +93,7 @@ def test_list_places_can_use_tour_api_source(monkeypatch) -> None:
 
     assert response.places[0].place_id == "tour-999001"
     assert response.places[0].source == "tour_api"
+    assert response.places[0].tags == ["맛집", "지역활성화 추천", "뚜벅이"]
 
 
 def test_recommendation_falls_back_to_sample_when_tour_api_has_no_result(monkeypatch) -> None:

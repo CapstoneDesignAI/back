@@ -34,7 +34,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
         "local_consumption_text": data["recommendation"]["summary"]["local_consumption_text"],
         "local_consumption_points": data["recommendation"]["local_consumption_points"],
         "mobility": data["recommendation"]["mobility"],
-        "primary_badges": ["힐링", "반나절", "자차"],
+        "tags": ["힐링", "반나절", "자차"],
         "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
         "place_count": 4,
         "place_count_text": "장소 4곳",
@@ -46,7 +46,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
                 "name": "도담삼봉",
                 "category": "자연",
                 "summary": "단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
-                "tags": ["healing", "nature"],
+                "tags": ["힐링", "자연투어"],
                 "image_url": None,
                 "lat": 36.984539,
                 "lng": 128.369267,
@@ -58,7 +58,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
                 "name": "단양구경시장",
                 "category": "로컬시장",
                 "summary": "지역 먹거리와 소상공인 매장을 함께 경험할 수 있는 장소입니다.",
-                "tags": ["food", "local_market"],
+                "tags": ["맛집", "로컬시장"],
                 "image_url": None,
                 "lat": 36.984784,
                 "lng": 128.365889,
@@ -70,7 +70,7 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
                 "name": "카페산",
                 "category": "카페",
                 "summary": "전망과 휴식을 함께 제공해 여행 피로도를 낮추는 중간 지점입니다.",
-                "tags": ["healing", "nature"],
+                "tags": ["힐링", "자연투어"],
                 "image_url": None,
                 "lat": 37.024255,
                 "lng": 128.395729,
@@ -86,4 +86,4 @@ def test_today_recommendation_contains_home_card_and_detail_payload() -> None:
     assert data["recommendation"]["route_id"] == data["route_id"]
     assert data["recommendation"]["title"] == data["card"]["title"]
     assert data["recommendation"]["legacy_route_payload"]["title"] == data["card"]["title"]
-    assert data["recommendation"]["map_markers"][0]["name"] == "도담삼봉"
+    assert "map_markers" not in data["recommendation"]

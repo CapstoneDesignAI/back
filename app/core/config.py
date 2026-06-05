@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     tour_api_mobile_app: str = "TRIP_RE"
     odsay_api_key: str | None = None
     odsay_api_base_url: str = "https://api.odsay.com/v1/api"
+    llm_provider: str = "openai"
+    llm_timeout_seconds: float = 20.0
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

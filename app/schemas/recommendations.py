@@ -334,9 +334,7 @@ class PlaceItem(BaseModel):
     estimated_cost_min: int
     estimated_cost_max: int
     local_contribution_score: int
-    theme_tags: list[str]
-    transport_tags: list[str]
-    companion_tags: list[str]
+    tags: list[str]
     is_local_consumption: bool
     reason: str
     contribution_reason: str
@@ -366,7 +364,6 @@ class RouteRecommendationPlace(BaseModel):
     estimated_cost_min: int
     estimated_cost_max: int
     local_contribution_score: int
-    theme_tags: list[str]
     tags: list[str]
     distance_from_previous_meters: int | None = None
     distance_from_previous_km: float | None = None
@@ -382,15 +379,6 @@ class RecommendationSummary(BaseModel):
     duration_text: str
     cost_range_text: str
     local_consumption_text: str
-
-
-class RouteMapMarker(BaseModel):
-    order: int
-    place_id: str
-    name: str
-    category: str
-    lat: float
-    lng: float
 
 
 class RouteLeg(BaseModel):
@@ -494,7 +482,7 @@ class RecommendationCard(BaseModel):
     local_consumption_text: str
     local_consumption_points: list[LocalConsumptionPoint]
     mobility: MobilityInfo
-    primary_badges: list[str]
+    tags: list[str]
     metric_badges: list[str]
     place_count: int
     place_count_text: str
@@ -545,7 +533,6 @@ class RecommendationResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
-    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False
@@ -587,7 +574,6 @@ class RecommendationDetailResponse(BaseModel):
     ai_reason_detail: AIReasonDetail
     places: list[RouteRecommendationPlace]
     route_legs: list[RouteLeg]
-    map_markers: list[RouteMapMarker]
     legacy_route_payload: RecommendationSavePayload
     source: str = "sample"
     is_saved: bool = False

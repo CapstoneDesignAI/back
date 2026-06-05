@@ -70,7 +70,7 @@ def test_create_recommended_route_returns_route_id_and_saves_places(monkeypatch)
         "place_id": "sample-dodamsambong",
         "visit_order": 1,
         "description": recommendation.legacy_route_payload.places[0].description,
-        "tags": ["healing", "nature", "walk", "revitalization"],
+        "tags": ["힐링", "자연투어", "뚜벅이", "지역활성화 추천"],
     }
 
 

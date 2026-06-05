@@ -1,9 +1,59 @@
+from dataclasses import dataclass
+
 from app.schemas.recommendations import (
     AIReasonDetail,
     RecommendationSummary,
     RegionItem,
     RouteRecommendationPlace,
 )
+
+
+@dataclass(frozen=True)
+class RecommendationReasonResult:
+    text: str
+    detail: AIReasonDetail
+
+
+def build_recommendation_reason(
+    *,
+    region: RegionItem,
+    theme_label: str,
+    transport_label: str,
+    companion_label: str,
+    summary: RecommendationSummary,
+    places: list[RouteRecommendationPlace],
+) -> RecommendationReasonResult:
+    return build_rule_based_recommendation_reason(
+        region=region,
+        theme_label=theme_label,
+        transport_label=transport_label,
+        companion_label=companion_label,
+        summary=summary,
+        places=places,
+    )
+
+
+def build_rule_based_recommendation_reason(
+    *,
+    region: RegionItem,
+    theme_label: str,
+    transport_label: str,
+    companion_label: str,
+    summary: RecommendationSummary,
+    places: list[RouteRecommendationPlace],
+) -> RecommendationReasonResult:
+    reason_detail = generate_ai_reason_detail(
+        region=region,
+        theme_label=theme_label,
+        transport_label=transport_label,
+        companion_label=companion_label,
+        summary=summary,
+        places=places,
+    )
+    return RecommendationReasonResult(
+        text=build_ai_reason_text(reason_detail),
+        detail=reason_detail,
+    )
 
 
 def generate_ai_reason_detail(
@@ -19,7 +69,7 @@ def generate_ai_reason_detail(
     nature_places = [
         place
         for place in places
-        if "nature" in place.theme_tags or place.category in {"자연", "액티비티"}
+        if "자연투어" in place.tags or place.category in {"자연", "액티비티"}
     ]
     rest_places = [
         place

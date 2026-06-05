@@ -77,11 +77,11 @@ def test_recommendation_response_contract_for_frontend() -> None:
     assert data["card"]["sido"] == "충청북도"
     assert data["card"]["sigungu"] == "단양군"
     assert data["card"]["region_story"] == data["region_story"]
-    assert data["card"]["primary_badges"] == ["힐링", "반나절", "뚜벅이"]
+    assert data["card"]["tags"] == ["힐링", "반나절", "뚜벅이"]
     assert data["card"]["mobility"] == data["mobility"]
     assert data["card"]["contribution_info"] == data["contribution_info"]
     assert data["card"]["local_consumption_points"] == data["local_consumption_points"]
-    assert len(data["card"]["primary_badges"]) == 3
+    assert len(data["card"]["tags"]) == 3
     assert data["card"]["metric_badges"] == ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"]
     assert data["card"]["place_count_text"] == "장소 4곳"
     assert data["card"]["place_preview_names"] == ["도담삼봉", "단양구경시장", "카페산"]
@@ -92,7 +92,7 @@ def test_recommendation_response_contract_for_frontend() -> None:
         "name": "도담삼봉",
         "category": "자연",
         "summary": "단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
-        "tags": ["healing", "nature"],
+        "tags": ["힐링", "자연투어"],
         "image_url": None,
         "lat": 36.984539,
         "lng": 128.369267,
@@ -124,19 +124,12 @@ def test_recommendation_response_contract_for_frontend() -> None:
         "generation_source",
     }
 
-    assert data["map_markers"][0] == {
-        "order": 1,
-        "place_id": "sample-dodamsambong",
-        "name": "도담삼봉",
-        "category": "자연",
-        "lat": 36.984539,
-        "lng": 128.369267,
-    }
+    assert "map_markers" not in data
 
     first_place = data["places"][0]
     assert first_place["order"] == 1
     assert first_place["visit_order"] == 1
-    assert first_place["tags"] == ["healing", "nature", "walk", "revitalization"]
+    assert first_place["tags"] == ["힐링", "자연투어", "뚜벅이", "지역활성화 추천"]
     assert first_place["recommendation_score"] == 79
     assert first_place["distance_from_previous_meters"] is None
     assert first_place["place_story"] == (

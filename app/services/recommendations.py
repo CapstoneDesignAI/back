@@ -25,7 +25,6 @@ from app.schemas.recommendations import (
     RegionStory,
     RouteRecommendationPlace,
     RouteLeg,
-    RouteMapMarker,
     SelectionModeItem,
     SelectionOptionsResponse,
     TodayRecommendationCard,
@@ -37,8 +36,7 @@ from app.services.recommendation_scoring import (
     build_recommendation_plan,
 )
 from app.services.recommendation_reasoning import (
-    build_ai_reason_text,
-    generate_ai_reason_detail,
+    build_recommendation_reason,
 )
 from app.services.tour_api import fetch_tour_api_places
 
@@ -164,6 +162,25 @@ REGION_SELECTION_MODES = [
     ),
 ]
 
+TAG_LABELS = {
+    "healing": "힐링",
+    "food": "맛집",
+    "walk": "뚜벅이",
+    "nature": "자연투어",
+    "local_market": "로컬시장",
+    "revitalization": "지역활성화 추천",
+    "3hours": "3시간",
+    "half_day": "반나절",
+    "full_day": "하루",
+    "overnight": "1박 2일",
+    "car": "자차",
+    "public_transport": "대중교통",
+    "solo": "혼자",
+    "friends": "친구",
+    "family": "가족",
+    "couple": "연인",
+}
+
 
 def list_regions(area_group: str | None = None) -> RegionListResponse:
     regions = REGIONS
@@ -268,7 +285,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         places=places,
     )
     summary = _build_summary(plan)
-    ai_reason_detail = generate_ai_reason_detail(
+    reason_result = build_recommendation_reason(
         region=region,
         theme_label=theme_label,
         transport_label=transport_label,
@@ -276,7 +293,8 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         summary=summary,
         places=places,
     )
-    ai_reason = build_ai_reason_text(ai_reason_detail)
+    ai_reason = reason_result.text
+    ai_reason_detail = reason_result.detail
     recommendation_id = _build_recommendation_id(
         region=region,
         theme=request.theme,
@@ -346,7 +364,6 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         ai_reason_detail=ai_reason_detail,
         places=places,
         route_legs=route_legs,
-        map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
             summary=summary,
@@ -376,9 +393,7 @@ def _to_place_item(place: PlaceCandidate) -> PlaceItem:
         estimated_cost_min=place.estimated_cost_min,
         estimated_cost_max=place.estimated_cost_max,
         local_contribution_score=place.local_contribution_score,
-        theme_tags=list(place.theme_tags),
-        transport_tags=list(place.transport_tags),
-        companion_tags=list(place.companion_tags),
+        tags=_to_tag_labels(place.theme_tags),
         is_local_consumption=place.is_local_consumption,
         reason=place.reason,
         contribution_reason=place.contribution_reason,
@@ -410,8 +425,7 @@ def _to_recommended_place(
         estimated_cost_min=place.estimated_cost_min,
         estimated_cost_max=place.estimated_cost_max,
         local_contribution_score=place.local_contribution_score,
-        theme_tags=list(place.theme_tags),
-        tags=list(place.theme_tags),
+        tags=_to_tag_labels(place.theme_tags),
         is_local_consumption=place.is_local_consumption,
         recommendation_score=scored_place.score,
         score_reasons=list(scored_place.score_reasons),
@@ -464,17 +478,6 @@ def _to_legacy_route_payload(
             )
             for place in places
         ],
-    )
-
-
-def _to_map_marker(place: RouteRecommendationPlace) -> RouteMapMarker:
-    return RouteMapMarker(
-        order=place.order,
-        place_id=place.place_id,
-        name=place.name,
-        category=place.category,
-        lat=place.lat,
-        lng=place.lng,
     )
 
 
@@ -724,7 +727,7 @@ def _build_recommendation_card(
         local_consumption_text=summary.local_consumption_text,
         local_consumption_points=local_consumption_points,
         mobility=mobility,
-        primary_badges=_build_primary_badges(
+        tags=_build_card_tags(
             theme_label=theme_label,
             travel_time_label=travel_time_label,
             transport_label=transport_label,
@@ -827,13 +830,17 @@ def _parse_route_id(route_id: str) -> RecommendationRequest | None:
     )
 
 
-def _build_primary_badges(
+def _build_card_tags(
     *,
     theme_label: str,
     travel_time_label: str,
     transport_label: str,
 ) -> list[str]:
     return [theme_label, travel_time_label, transport_label]
+
+
+def _to_tag_labels(tag_codes: tuple[str, ...] | list[str]) -> list[str]:
+    return [TAG_LABELS.get(tag_code, tag_code) for tag_code in tag_codes]
 
 
 def _build_metric_badges(
