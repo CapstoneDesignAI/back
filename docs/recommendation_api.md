@@ -94,6 +94,157 @@
 
 응답에는 `contribution_info`로 산식과 세부 값을 함께 내려줍니다.
 
+## Environment Variables
+
+한국관광공사 국문 관광정보 서비스 GW 연동에 사용하는 환경변수입니다.
+
+```env
+TOUR_API_SERVICE_KEY=발급받은_서비스키
+TOUR_API_BASE_URL=https://apis.data.go.kr/B551011/KorService2
+TOUR_API_SERVICE_VERSION=2
+TOUR_API_MOBILE_OS=ETC
+TOUR_API_MOBILE_APP=TRIPICK
+
+# Tourism photo API. Leave TOUR_PHOTO_API_SERVICE_KEY blank to reuse TOUR_API_SERVICE_KEY.
+TOUR_PHOTO_API_SERVICE_KEY=
+TOUR_PHOTO_API_BASE_URL=https://apis.data.go.kr/B551011/PhokoAwrdService
+TOUR_PHOTO_API_SEARCH_ENDPOINT=phokoAwrdList
+TOUR_PHOTO_API_MOBILE_OS=ETC
+TOUR_PHOTO_API_MOBILE_APP=TRIPICK
+TOUR_PHOTO_API_TIMEOUT_SECONDS=10
+```
+
+실제 key 값은 GitHub, 공개 채널, 문서에 올리지 않고 Vercel 환경변수나 팀장님에게 안전하게 공유합니다.
+
+TourAPI `firstimage`, `firstimage2` 값은 장소 `image_url`과 카드 `thumbnail_url`에 우선 반영합니다. 해당 값이 비어 있으면 한국관광공사 관광공모전(사진) 수상작 정보 API의 `phokoAwrdList`를 키워드로 조회해 보조 이미지 소스로 사용합니다.
+
+## Recommendation Flow
+
+### Today Recommendation Save Flow
+
+오늘의 추천에서 받은 동선을 저장하고 다시 상세조회할 때는 아래 흐름을 사용합니다.
+
+1. `GET /api/v1/recommendations/today`
+   - `route_id`: 추천 원본 동선 ID
+   - `detail_api_path`: 추천 상세 조회 API
+   - `save_api_path`: 추천 동선 저장 API
+2. 사용자가 저장 버튼 클릭
+   - `POST /api/v1/routes/from-recommendation`
+   - request body: `{ "route_id": today.route_id }`
+3. 저장 응답
+   - `source_route_id`: 추천 원본 동선 ID
+   - `source_detail_api_path`: AI 추천 상세 조회 API
+   - `saved_route_id`: DB에 저장된 동선 ID
+   - `saved_detail_api_path`: 저장 동선 상세 조회 API
+
+프론트에서 AI 추천 상세 화면을 다시 보여줄 때는 `source_detail_api_path`를 사용합니다.
+저장된 DB 동선 상세 화면을 보여줄 때는 `saved_detail_api_path`를 사용합니다.
+
+1. 홈에서 오늘의 추천 조회: `GET /recommendations/today`
+2. 내 여행 찾기에서 조건 선택
+3. 추천 카드 생성: `POST /ai-recommendations`
+4. 동선 상세 조회: `GET /ai-recommendations/{route_id}`
+5. 저장 버튼 클릭: `POST /routes/from-recommendation`
+6. 저장한 동선 조회: `GET /routes`, `GET /routes/{saved_route_id}`
+
+## GET /api/v1/recommendations/today
+
+홈 화면의 “오늘의 추천 여행” 카드와 상세 이동 정보를 반환합니다.
+
+### Response
+
+```json
+{
+  "today_date": "2026-05-28",
+  "section_title": "오늘의 추천 여행",
+  "recommendation_id": "sample-danyang-healing-half_day",
+  "route_id": "route-danyang-healing-half_day-car-friends",
+  "detail_api_path": "/api/v1/ai-recommendations/route-danyang-healing-half_day-car-friends",
+  "save_api_path": "/api/v1/routes/from-recommendation",
+  "card": {
+    "recommendation_id": "sample-danyang-healing-half_day",
+    "route_id": "route-danyang-healing-half_day-car-friends",
+    "title": "단양 힐링 로컬 코스",
+    "subtitle": "충청북도 단양군에서 즐기는 반나절 여행",
+    "summary": "도담삼봉부터 만천하스카이워크까지 이어지는 로컬 동선",
+    "sido": "충청북도",
+    "sigungu": "단양군",
+    "region_label": "충청북도 단양군",
+    "theme_label": "힐링",
+    "tags": ["힐링", "반나절", "자차"],
+    "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
+    "place_preview_names": ["도담삼봉", "단양구경시장", "카페산"],
+    "route_preview_text": "도담삼봉 → 단양구경시장 → 카페산"
+  },
+  "recommendation": {
+    "...": "GET /api/v1/ai-recommendations/{route_id}와 같은 상세 응답. card는 포함하지 않음"
+  }
+}
+```
+
+### Frontend Usage
+
+| 화면 | 사용 필드 |
+| --- | --- |
+| 홈 오늘의 추천 카드 | `card.title`, `card.summary`, `card.tags`, `card.metric_badges` |
+| 상세 이동 | `route_id` 또는 `detail_api_path` |
+| 저장 버튼 | `route_id`를 `POST /routes/from-recommendation`에 전달 |
+
+## POST /api/v1/ai-recommendations
+
+프론트 메인 추천 카드 API입니다. 조건을 받아 추천 카드에 필요한 요약 정보만 반환합니다.
+
+### Request
+
+한국어 중심 요청을 지원합니다.
+
+```json
+{
+  "duration": "반나절",
+  "transportation": "뚜벅이",
+  "travel_purpose": "힐링",
+  "companion": "친구",
+  "region": "단양군"
+}
+```
+
+### Response
+
+`RecommendationCard` 형태입니다.
+
+```json
+{
+  "recommendation_id": "sample-danyang-healing-half_day",
+  "route_id": "route-danyang-healing-half_day-walk-friends",
+  "title": "단양 힐링 로컬 코스",
+  "subtitle": "충청북도 단양군에서 즐기는 반나절 여행",
+  "summary": "도담삼봉부터 만천하스카이워크까지 이어지는 로컬 동선",
+  "sido": "충청북도",
+  "sigungu": "단양군",
+  "region_label": "충청북도 단양군",
+  "theme_label": "힐링",
+  "contribution_score": 86,
+  "estimated_duration_text": "5시간 20분",
+  "estimated_cost_text": "35,000원~55,000원",
+  "local_consumption_text": "로컬 소비 장소 2곳 포함",
+  "tags": ["힐링", "반나절", "뚜벅이"],
+  "metric_badges": ["지역 기여도 86점", "로컬 소비 2곳", "장소 4곳"],
+  "place_count": 4,
+  "place_count_text": "장소 4곳",
+  "place_preview_names": ["도담삼봉", "단양구경시장", "카페산"],
+  "route_preview_text": "도담삼봉 → 단양구경시장 → 카페산",
+  "ai_reason_summary": "짧은 이동 안에 전망, 산책, 로컬 소비를 균형 있게 배치했어요."
+}
+```
+
+카드 응답에는 전체 장소 리스트, 지도 마커, 저장 payload가 포함되지 않습니다. 전체 동선은 상세조회 API를 사용합니다.
+
+## GET /api/v1/ai-recommendations/{route_id}
+
+추천 동선 상세조회 API입니다. 추천 카드의 `route_id`를 path parameter로 전달합니다.
+
+### Example
+
 ## Local Consumption
 
 로컬 소비 장소는 전통시장, 지역 식당, 로컬 카페, 특산물/체험 장소처럼 실제 지역 상권 소비로 이어질 수 있는 장소입니다.

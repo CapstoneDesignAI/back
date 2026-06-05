@@ -24,10 +24,9 @@ class Settings(BaseSettings):
     tour_api_base_url: str = "https://apis.data.go.kr/B551011/KorService2"
     tour_api_service_version: str = "2"
     tour_api_mobile_os: str = "ETC"
-    tour_api_mobile_app: str = "TRIP_RE"
+    tour_api_mobile_app: str = "TRIPICK"
     odsay_api_key: str | None = None
     odsay_api_base_url: str = "https://api.odsay.com/v1/api"
-    tour_api_mobile_app: str = "TRIPICK"
     tour_photo_api_service_key: str | None = None
     tour_photo_api_base_url: str = "https://apis.data.go.kr/B551011/PhokoAwrdService"
     tour_photo_api_search_endpoint: str = "phokoAwrdList"
