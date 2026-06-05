@@ -36,10 +36,20 @@ TOUR_API_SERVICE_KEY=발급받은_서비스키
 TOUR_API_BASE_URL=https://apis.data.go.kr/B551011/KorService2
 TOUR_API_SERVICE_VERSION=2
 TOUR_API_MOBILE_OS=ETC
-TOUR_API_MOBILE_APP=TRIP_RE
+TOUR_API_MOBILE_APP=TRIPICK
+
+# Tourism photo API. Leave TOUR_PHOTO_API_SERVICE_KEY blank to reuse TOUR_API_SERVICE_KEY.
+TOUR_PHOTO_API_SERVICE_KEY=
+TOUR_PHOTO_API_BASE_URL=https://apis.data.go.kr/B551011/PhokoAwrdService
+TOUR_PHOTO_API_SEARCH_ENDPOINT=phokoAwrdList
+TOUR_PHOTO_API_MOBILE_OS=ETC
+TOUR_PHOTO_API_MOBILE_APP=TRIPICK
+TOUR_PHOTO_API_TIMEOUT_SECONDS=10
 ```
 
 실제 key 값은 GitHub, 공개 채널, 문서에 올리지 않고 Vercel 환경변수나 팀장님에게 안전하게 공유합니다.
+
+TourAPI `firstimage`, `firstimage2` 값은 장소 `image_url`과 카드 `thumbnail_url`에 우선 반영합니다. 해당 값이 비어 있으면 한국관광공사 관광공모전(사진) 수상작 정보 API의 `phokoAwrdList`를 키워드로 조회해 보조 이미지 소스로 사용합니다.
 
 ## Recommendation Flow
 
