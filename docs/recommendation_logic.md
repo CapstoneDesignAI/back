@@ -158,14 +158,14 @@ route-danyang-healing-half_day-walk-friends
 
 | API | Role | Main Fields |
 | --- | --- | --- |
-| `POST /api/v1/ai-recommendations` | 추천 카드 생성 | `route_id`, `title`, `summary`, `primary_badges`, `place_preview`, `sido`, `sigungu` |
+| `POST /api/v1/ai-recommendations` | 추천 카드 생성 | `route_id`, `title`, `summary`, `tags`, `metric_badges`, `place_preview`, `sido`, `sigungu` |
 | `GET /api/v1/ai-recommendations/{route_id}` | 동선 상세 조회 | 전체 장소 목록, 좌표, AI 추천 이유, 거리, 이동 난이도, 지역 스토리 |
 | `GET /api/v1/recommendations/today` | 오늘의 추천 | 카드와 상세 이동용 `route_id` |
 | `POST /api/v1/routes/from-recommendation` | 추천 동선 저장 | 요청 body의 `route_id`로 저장 |
 
-## Primary Badges
+## Card Tags
 
-카드의 `primary_badges`는 피그마 카드 UI에 맞춰 3개 고정으로 내려줍니다.
+카드의 `tags`는 피그마 카드 UI에 맞춰 3개 고정으로 내려줍니다.
 
 ```json
 ["힐링", "반나절", "뚜벅이"]
