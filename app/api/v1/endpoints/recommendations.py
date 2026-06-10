@@ -188,5 +188,5 @@ def _to_recommendation_request(request_data: AIRecommendationRequest) -> Recomme
         transport=AI_TRANSPORT_MAP.get(request_data.transportation.value, "walk"),
         companion=AI_COMPANION_MAP.get(request_data.companion.value, "friends"),
         prefer_ai_region=not bool(region_text),
-        data_source="sample",
+        data_source="auto",
     )

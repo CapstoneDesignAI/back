@@ -1,4 +1,5 @@
-from app.services.recommendations import list_places
+from app.schemas.recommendations import RecommendationRequest
+from app.services.recommendations import create_recommendation, list_places
 from app.services import place_repository
 
 
@@ -79,4 +80,31 @@ def test_list_places_can_use_supabase_candidates(monkeypatch) -> None:
     assert response.places[0].name == "단양 로컬 맛집"
     assert response.places[0].source == "tour_api"
     assert response.places[0].tags == ["맛집", "지역활성화 추천", "뚜벅이"]
+    assert ("places", "eq", {"region_id": "region-uuid"}) in fake_supabase.calls
+
+
+def test_create_recommendation_can_use_supabase_candidates(monkeypatch) -> None:
+    fake_supabase = FakeSupabase()
+    monkeypatch.setattr(place_repository, "get_supabase", lambda: fake_supabase)
+
+    response = create_recommendation(
+        RecommendationRequest(
+            region_id="region-danyang",
+            theme="food",
+            travel_time="3hours",
+            transport="walk",
+            companion="friends",
+            data_source="supabase",
+        )
+    )
+
+    assert response.places[0].place_id == "tour-999001"
+    assert response.places[0].name == "단양 로컬 맛집"
+    assert response.places[0].image_url == "https://example.com/food.jpg"
+    assert response.card.thumbnail_url == "https://example.com/food.jpg"
+    assert response.card.place_preview[0].image_url == "https://example.com/food.jpg"
+    assert response.legacy_route_payload.places[0].place_id == "tour-999001"
+    assert response.legacy_route_payload.places[0].image_url == "https://example.com/food.jpg"
+    assert response.local_consumption_count == 1
+    assert response.source == "tour_api"
     assert ("places", "eq", {"region_id": "region-uuid"}) in fake_supabase.calls

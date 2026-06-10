@@ -1,5 +1,5 @@
 from app.schemas.recommendations import RecommendationRequest
-from app.services.recommendations import create_recommendation
+from app.services.recommendations import DEFAULT_REGION_IMAGE_URLS, create_recommendation
 
 
 def test_recommendation_response_contract_for_frontend() -> None:
@@ -13,6 +13,7 @@ def test_recommendation_response_contract_for_frontend() -> None:
         )
     )
     data = response.model_dump()
+    fallback_image_url = DEFAULT_REGION_IMAGE_URLS["region-danyang"]
 
     assert data["route_id"] == "route-danyang-healing-half_day-walk-friends"
     assert data["title"] == "단양 힐링 로컬 코스"
@@ -93,11 +94,14 @@ def test_recommendation_response_contract_for_frontend() -> None:
         "category": "자연",
         "summary": "단양의 자연 경관을 먼저 체감할 수 있는 대표 전망 장소입니다.",
         "tags": ["힐링", "자연투어"],
-        "image_url": None,
+        "image_url": fallback_image_url,
         "lat": 36.984539,
         "lng": 128.369267,
         "is_local_consumption": False,
     }
+    assert data["card"]["thumbnail_url"] == fallback_image_url
+    assert all(place["image_url"] for place in data["card"]["place_preview"])
+    assert all(place["image_url"] for place in data["places"])
 
     assert data["summary"] == {
         "contribution_label": "지역 기여도 86점",
