@@ -38,6 +38,7 @@ from app.services.recommendation_scoring import (
 from app.services.recommendation_reasoning import (
     build_recommendation_reason,
 )
+from app.services.place_repository import fetch_place_candidates_from_supabase
 from app.services.tour_api import fetch_tour_api_places
 
 
@@ -880,6 +881,18 @@ def _get_candidate_places(
     theme: str | None = None,
     limit: int = 20,
 ) -> tuple[PlaceCandidate, ...]:
+    if source in {"supabase", "db", "auto"}:
+        try:
+            supabase_places = fetch_place_candidates_from_supabase(
+                region=region,
+                theme=theme,
+                limit=max(limit, 100),
+            )
+        except Exception:
+            supabase_places = ()
+        if supabase_places:
+            return supabase_places
+
     if source in {"tour_api", "auto"}:
         try:
             tour_api_places = fetch_tour_api_places(
@@ -896,8 +909,17 @@ def _get_candidate_places(
 
 
 def _resolve_response_source(places: tuple[PlaceCandidate, ...]) -> str:
-    if places and all(place.source == "tour_api" for place in places):
+    if not places:
+        return "sample"
+    place_sources = {place.source for place in places}
+    if place_sources == {"tour_api"}:
         return "tour_api"
+    if place_sources == {"sample"}:
+        return "sample"
+    if place_sources == {"manual"}:
+        return "supabase"
+    if "tour_api" in place_sources:
+        return "supabase"
     return "sample"
 
 
