@@ -871,7 +871,11 @@ def _build_recommendation_card(
                 category=place.category,
                 summary=place.reason,
                 tags=place.tags[:2],
-                image_url=place.image_url,
+                image_url=_resolve_place_image_url(
+                    place=place,
+                    route_thumbnail_url=thumbnail_url,
+                    region=region,
+                ),
                 lat=place.lat,
                 lng=place.lng,
                 is_local_consumption=place.is_local_consumption,
@@ -890,7 +894,11 @@ def _apply_image_fallbacks(
 ) -> None:
     route_thumbnail_url = _resolve_route_thumbnail(region=region, places=places)
     for place in places:
-        place.image_url = place.image_url or route_thumbnail_url
+        place.image_url = _resolve_place_image_url(
+            place=place,
+            route_thumbnail_url=route_thumbnail_url,
+            region=region,
+        )
 
 
 def _resolve_route_thumbnail(
@@ -904,6 +912,13 @@ def _resolve_route_thumbnail(
     )
 
 
+def _resolve_place_image_url(
+    *,
+    place: RouteRecommendationPlace,
+    route_thumbnail_url: str | None,
+    region: RegionItem,
+) -> str | None:
+    return place.image_url or route_thumbnail_url or DEFAULT_REGION_IMAGE_URLS.get(region.id)
 def _to_today_card(
     recommendation: RecommendationResponse,
 ) -> TodayRecommendationCard:
