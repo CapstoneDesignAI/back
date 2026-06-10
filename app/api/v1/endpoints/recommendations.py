@@ -109,7 +109,7 @@ def read_regions(
 )
 def read_places(
     region_id: str | None = Query(default=None),
-    source: str = Query(default="sample", pattern="^(sample|tour_api|auto)$"),
+    source: str = Query(default="sample", pattern="^(sample|supabase|db|tour_api|auto)$"),
     theme: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=50),
 ) -> PlaceListResponse:
