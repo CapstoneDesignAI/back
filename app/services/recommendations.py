@@ -39,7 +39,7 @@ from app.services.recommendation_reasoning import (
     build_recommendation_reason,
 )
 from app.services.place_repository import fetch_place_candidates_from_supabase
-from app.services.tour_api import fetch_tour_api_places, fetch_tour_photo_image_url
+from app.services.tour_api import fetch_tour_api_places
 
 
 REGIONS = [
@@ -583,6 +583,7 @@ def _to_legacy_route_payload(
     return RecommendationSavePayload(
         title=title,
         estimated_time=f"총 예상 소요 시간: {summary.duration_text}",
+        image_url=next((place.image_url for place in places if place.image_url), None),
         places=[
             RecommendedPlace(
                 visit_order=place.visit_order,
@@ -868,10 +869,7 @@ def _build_recommendation_card(
                 category=place.category,
                 summary=place.reason,
                 tags=place.tags[:2],
-                image_url=_resolve_place_image_url(
-                    place=place,
-                    region=region,
-                ),
+                image_url=place.image_url,
                 lat=place.lat,
                 lng=place.lng,
                 is_local_consumption=place.is_local_consumption,
@@ -888,13 +886,9 @@ def _apply_image_fallbacks(
     region: RegionItem,
     places: list[RouteRecommendationPlace],
 ) -> None:
-    keyword_image_cache: dict[str, str | None] = {}
+    route_thumbnail_url = _resolve_route_thumbnail(region=region, places=places)
     for place in places:
-        place.image_url = _resolve_place_image_url(
-            place=place,
-            region=region,
-            keyword_image_cache=keyword_image_cache,
-        )
+        place.image_url = place.image_url or route_thumbnail_url
 
 
 def _resolve_route_thumbnail(
@@ -906,45 +900,6 @@ def _resolve_route_thumbnail(
         (place.image_url for place in places if place.image_url),
         DEFAULT_REGION_IMAGE_URLS.get(region.id),
     )
-
-
-def _resolve_place_image_url(
-    *,
-    place: RouteRecommendationPlace,
-    region: RegionItem,
-    keyword_image_cache: dict[str, str | None] | None = None,
-) -> str | None:
-    return (
-        place.image_url
-        or _resolve_keyword_place_image_url(
-            place=place,
-            region=region,
-            keyword_image_cache=keyword_image_cache,
-        )
-        or DEFAULT_REGION_IMAGE_URLS.get(region.id)
-    )
-
-
-def _resolve_keyword_place_image_url(
-    *,
-    place: RouteRecommendationPlace,
-    region: RegionItem,
-    keyword_image_cache: dict[str, str | None] | None = None,
-) -> str | None:
-    keywords = (place.name, f"{region.sigungu} {place.name}")
-    for keyword in keywords:
-        keyword = keyword.strip()
-        if not keyword:
-            continue
-        if keyword_image_cache is not None and keyword in keyword_image_cache:
-            image_url = keyword_image_cache[keyword]
-        else:
-            image_url = fetch_tour_photo_image_url(keyword)
-            if keyword_image_cache is not None:
-                keyword_image_cache[keyword] = image_url
-        if image_url:
-            return image_url
-    return None
 
 
 def _to_today_card(

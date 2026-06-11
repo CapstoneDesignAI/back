@@ -42,6 +42,7 @@ class RouteDetailResponse(BaseModel):
     route_id: str
     title: str
     created_at: str
+    image_url: str | None = None
     description: str | None = None
     tags: list[str] = []
     places: list[RoutePlaceItem]

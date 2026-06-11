@@ -245,6 +245,43 @@ def test_recommendations_endpoint_accepts_korean_labels() -> None:
     assert data["companion"] == "family"
 
 
+def test_recommendations_endpoint_accepts_province_area_group_labels() -> None:
+    gangwon_response = client.post(
+        "/api/v1/recommendations",
+        json={
+            "area_group": "강원도",
+            "theme": "힐링",
+            "travel_time": "반나절",
+            "transport": "도보",
+            "companion": "친구",
+            "data_source": "auto",
+        },
+    )
+    gyeonggi_response = client.post(
+        "/api/v1/recommendations",
+        json={
+            "area_group": "경기도",
+            "theme": "힐링",
+            "travel_time": "반나절",
+            "transport": "도보",
+            "companion": "친구",
+            "data_source": "auto",
+        },
+    )
+
+    assert gangwon_response.status_code == 200
+    assert gyeonggi_response.status_code == 200
+
+    gangwon_data = gangwon_response.json()
+    gyeonggi_data = gyeonggi_response.json()
+    assert gangwon_data["region"]["id"] == "region-pyeongchang"
+    assert gangwon_data["sido"] == "강원특별자치도"
+    assert gangwon_data["sigungu"] == "평창군"
+    assert gyeonggi_data["region"]["id"] == "region-gapyeong"
+    assert gyeonggi_data["sido"] == "경기도"
+    assert gyeonggi_data["sigungu"] == "가평군"
+
+
 def test_ai_recommendation_detail_returns_route_by_route_id() -> None:
     response = client.get(
         "/api/v1/ai-recommendations/route-danyang-healing-half_day-walk-friends"

@@ -21,9 +21,9 @@ def add_bookmark(payload: BookmarkAddRequest, user_id: str = Depends(get_current
 def get_bookmarked_places(folder_id: str , user_id: str = Depends(get_current_user)):
     return bookmark_service.get_bookmarked_places(user_id, folder_id)
 
-@router.delete("/{bookmark_id}", summary="찜한 장소 삭제")
-def delete_bookmark(bookmark_id: str, user_id: str = Depends(get_current_user)):
-    success = bookmark_service.delete_bookmark(user_id, bookmark_id)
+@router.delete("/{place_id}", summary="찜한 장소 삭제")
+def delete_bookmark(place_id: str, user_id: str = Depends(get_current_user)):
+    success = bookmark_service.delete_bookmark(user_id, place_id)
     if not success:
         raise HTTPException(status_code=404, detail="삭제할 권한이 없거나 존재하지 않는 즐겨찾기입니다.")
     return {"message": "즐겨찾기가 성공적으로 삭제되었습니다."}

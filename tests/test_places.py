@@ -44,7 +44,7 @@ class FakeSupabase:
         self.calls: list[tuple[str, str, object]] = []
         self.existing_places: dict[str, list[dict[str, str]]] = {}
         self.inserted_payloads: list[dict[str, object]] = []
-        self.insert_result = [{"id": "new-place-id"}]
+        self.insert_result = [{"place_id": "123456789"}]
 
     def table(self, name: str):
         return FakeTable(name, self)
@@ -52,12 +52,12 @@ class FakeSupabase:
 
 def test_create_or_get_place_returns_existing_place(monkeypatch) -> None:
     fake_supabase = FakeSupabase()
-    fake_supabase.existing_places["123456789"] = [{"id": "existing-place-id"}]
+    fake_supabase.existing_places["123456789"] = [{"place_id": "123456789"}]
     monkeypatch.setattr(place_service, "get_supabase", lambda: fake_supabase)
 
     place_id, is_newly_created = place_service.create_or_get_place(_place_request())
 
-    assert place_id == "existing-place-id"
+    assert place_id == "123456789"
     assert is_newly_created is False
     assert fake_supabase.inserted_payloads == []
 
@@ -68,16 +68,19 @@ def test_create_or_get_place_inserts_new_place(monkeypatch) -> None:
 
     place_id, is_newly_created = place_service.create_or_get_place(_place_request())
 
-    assert place_id == "new-place-id"
+    assert place_id == "123456789"
     assert is_newly_created is True
     assert fake_supabase.inserted_payloads == [
         {
+            "place_id": "123456789",
             "kakao_place_id": "123456789",
             "name": "스타벅스 강남역점",
             "lat": 37.498,
             "lng": 127.0276,
             "address": "서울 강남구 강남대로 390",
             "category": "카페",
+            "description": "카카오맵에서 선택한 카페 장소입니다.",
+            "is_indoor": True,
         }
     ]
 

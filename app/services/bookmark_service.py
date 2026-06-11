@@ -75,12 +75,12 @@ def get_bookmarked_places(user_id: str, folder_id: str | None = None) -> list[Bo
     return formatted_data
 
 
-def delete_bookmark(user_id: str, bookmark_id: str) -> bool:
+def delete_bookmark(user_id: str, place_id: str) -> bool:
     supabase = get_supabase()
     try:
         result = supabase.table("bookmarks") \
             .delete() \
-            .eq("id", bookmark_id) \
+            .eq("place_id", place_id) \
             .eq("user_id", user_id) \
             .execute()
             

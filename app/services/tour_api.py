@@ -59,24 +59,6 @@ THEME_CONTENT_TYPES = {
     "revitalization": ("12", "14", "28", "38", "39"),
 }
 
-PHOTO_IMAGE_URL_KEYS = {
-    "firstimage",
-    "firstimage2",
-    "galwebimageurl",
-    "galwebimageurl2",
-    "imageurl",
-    "imgurl",
-    "photourl",
-    "mainimage",
-    "mainimageurl",
-    "orgimage",
-    "originimgurl",
-    "smallimageurl",
-    "thumbimage",
-    "thumbnailurl",
-}
-
-
 def fetch_tour_api_places(
     region: RegionItem,
     theme: str | None = None,
@@ -129,38 +111,6 @@ def map_tour_api_item_to_place_candidate(
     return _to_place_candidate(item=item, region=region)
 
 
-def fetch_tour_photo_image_url(keyword: str) -> str | None:
-    photo_api_base_url = (settings.tour_photo_api_base_url or "").rstrip("/")
-    if not photo_api_base_url:
-        return None
-
-    service_key = settings.tour_photo_api_service_key or settings.tour_api_service_key
-    if not service_key:
-        return None
-
-    params = {
-        "serviceKey": service_key,
-        "MobileOS": settings.tour_photo_api_mobile_os,
-        "MobileApp": settings.tour_photo_api_mobile_app,
-        "_type": "json",
-        "numOfRows": 1,
-        "pageNo": 1,
-        "arrange": "A",
-        "keyword": keyword,
-    }
-
-    try:
-        response = httpx.get(
-            f"{photo_api_base_url}/{settings.tour_photo_api_search_endpoint}",
-            params=params,
-            timeout=settings.tour_photo_api_timeout_seconds,
-        )
-        response.raise_for_status()
-        return _extract_photo_image_url(response.json())
-    except (httpx.HTTPError, ValueError, TypeError):
-        return None
-
-
 def _fetch_area_based_items(
     area_code: str,
     sigungu_code: str,
@@ -211,31 +161,6 @@ def _extract_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
-def _extract_photo_image_url(payload: dict[str, Any]) -> str | None:
-    return _find_first_image_url(payload)
-
-
-def _find_first_image_url(value: Any) -> str | None:
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if key.lower() in PHOTO_IMAGE_URL_KEYS and _is_http_url(item):
-                return item
-        for item in value.values():
-            image_url = _find_first_image_url(item)
-            if image_url:
-                return image_url
-    if isinstance(value, list):
-        for item in value:
-            image_url = _find_first_image_url(item)
-            if image_url:
-                return image_url
-    return None
-
-
-def _is_http_url(value: Any) -> bool:
-    return isinstance(value, str) and value.startswith(("http://", "https://"))
-
-
 def _has_required_location(item: dict[str, Any]) -> bool:
     return bool(item.get("contentid") and item.get("title") and item.get("mapx") and item.get("mapy"))
 
@@ -269,13 +194,13 @@ def _to_place_candidate(item: dict[str, Any], region: RegionItem) -> PlaceCandid
             if is_local_consumption
             else "지역 대표 자원 방문을 통해 주변 상권 방문 가능성을 높입니다."
         ),
-        image_url=_resolve_image_url(item, title),
+        image_url=_resolve_image_url(item),
         source="tour_api",
     )
 
 
-def _resolve_image_url(item: dict[str, Any], title: str) -> str | None:
-    return item.get("firstimage") or item.get("firstimage2") or fetch_tour_photo_image_url(title)
+def _resolve_image_url(item: dict[str, Any]) -> str | None:
+    return item.get("firstimage") or item.get("firstimage2")
 
 
 def _join_address(item: dict[str, Any]) -> str:

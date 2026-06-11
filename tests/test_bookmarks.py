@@ -11,6 +11,7 @@ class FakeTable:
         self.name = name
         self.supabase = supabase
         self.filters: dict[str, object] = {}
+        self.is_delete = False
         self.insert_payload = None
 
     def select(self, columns: str):
@@ -25,7 +26,15 @@ class FakeTable:
         self.supabase.inserted_payloads.append((self.name, payload))
         return self
 
+    def delete(self):
+        self.is_delete = True
+        return self
+
     def execute(self):
+        if self.is_delete:
+            self.supabase.deleted_filters.append((self.name, dict(self.filters)))
+            return FakeExecuteResult([{"id": "bookmark-id"}])
+
         if self.insert_payload is not None:
             return FakeExecuteResult([{"id": "bookmark-id"}])
 
@@ -37,6 +46,7 @@ class FakeTable:
 
 class FakeSupabase:
     def __init__(self):
+        self.deleted_filters: list[tuple[str, dict[str, object]]] = []
         self.inserted_payloads: list[tuple[str, dict[str, object]]] = []
 
     def table(self, name: str):
@@ -97,6 +107,24 @@ def test_add_bookmark_keeps_existing_place_id_flow(monkeypatch) -> None:
                 "user_id": "user-id",
                 "folder_id": "custom-folder-id",
                 "place_id": "existing-place-id",
+            },
+        )
+    ]
+
+
+def test_delete_bookmark_deletes_by_place_id(monkeypatch) -> None:
+    fake_supabase = FakeSupabase()
+    monkeypatch.setattr(bookmark_service, "get_supabase", lambda: fake_supabase)
+
+    result = bookmark_service.delete_bookmark("user-id", "place-id")
+
+    assert result is True
+    assert fake_supabase.deleted_filters == [
+        (
+            "bookmarks",
+            {
+                "place_id": "place-id",
+                "user_id": "user-id",
             },
         )
     ]

@@ -3,10 +3,11 @@ from app.schemas.routes import RouteListItem, RouteDetailResponse
 from app.schemas.recommendations import RecommendationSavePayload
 from app.services.recommendations import get_recommendation_detail
 
+
 def get_routes(user_id: str) -> list[RouteListItem]:
     supabase = get_supabase()
     result = supabase.table("routes") \
-        .select("id, title, created_at, route_places(visit_order, places(image_url))") \
+        .select("id, title, created_at, image_url, route_places(visit_order)") \
         .eq("user_id", user_id) \
         .execute()
     
@@ -15,22 +16,12 @@ def get_routes(user_id: str) -> list[RouteListItem]:
         route_places = row.get("route_places") or []
         place_count = len(route_places)
         
-        # 첫 번째 장소의 이미지를 썸네일로 사용
-        thumbnail_url = None
-        if route_places:
-            sorted_places = sorted(route_places, key=lambda x: x.get("visit_order", 999))
-            for rp in sorted_places:
-                place_info = rp.get("places")
-                if place_info and isinstance(place_info, dict) and place_info.get("image_url"):
-                    thumbnail_url = place_info.get("image_url")
-                    break
-
         formatted_data.append({
             "route_id": row["id"],
             "title": row["title"],
             "created_at": row["created_at"],
             "place_count": place_count,
-            "image_url": thumbnail_url
+            "image_url": row.get("image_url")
         })
         
     return formatted_data
@@ -38,7 +29,7 @@ def get_routes(user_id: str) -> list[RouteListItem]:
 def get_route_detail(route_id: str) -> RouteDetailResponse:
     supabase = get_supabase()
     result = supabase.table("routes") \
-        .select("id, title, created_at, route_places(visit_order, place_id, description, tags, places(name, address, lat, lng, image_url, category))") \
+        .select("id, title, created_at, image_url, route_places(visit_order, place_id, description, tags, places(name, address, lat, lng, image_url, category))") \
         .eq("id", route_id) \
         .single() \
         .execute()
@@ -67,6 +58,7 @@ def get_route_detail(route_id: str) -> RouteDetailResponse:
         "route_id": data["id"],
         "title": data["title"],
         "created_at": data["created_at"],
+        "image_url": data.get("image_url"),
         "description": data.get("description") or "AI가 생성한 맞춤 여행 코스입니다.",
         "tags": data.get("tags") or ["추천", "힐링"],
         "places": formatted_places
@@ -76,9 +68,14 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
     supabase = get_supabase()
     
     try:
+        place_payloads = [_to_place_upsert_payload(place) for place in route_data.places]
+        if place_payloads:
+            supabase.table("places").upsert(place_payloads, on_conflict="place_id").execute()
+
         route_insert_result = supabase.table("routes").insert({
             "user_id": user_id,
             "title": route_data.title,
+            "image_url": route_data.image_url,
         }).execute()
         
         inserted_route = route_insert_result.data[0]
@@ -91,15 +88,8 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
                 "place_id": place.place_id,
                 "visit_order": place.visit_order,
                 "description": place.description,
-                "tags": place.tags
+                "tags": place.tags,
             })
-            
-            # 동선 저장 시 장소 테이블의 이미지 URL 업데이트 (존재하고 유효한 경우)
-            if place.image_url:
-                try:
-                    supabase.table("places").update({"image_url": place.image_url}).eq("id", place.place_id).execute()
-                except Exception as update_err:
-                    print(f"⚠️ 장소 이미지 업데이트 실패 ({place.place_id}): {update_err}")
             
         if places_to_insert:
             supabase.table("route_places").insert(places_to_insert).execute()
@@ -109,6 +99,40 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
     except Exception as e:
         print(f"❌ DB 저장 중 에러 발생: {e}")
         return None
+
+
+def _to_place_upsert_payload(place) -> dict:
+    return {
+        "place_id": place.place_id,
+        "name": place.name,
+        "address": place.address,
+        "lat": place.lat,
+        "lng": place.lng,
+        "category": place.category,
+        "description": place.description,
+        "image_url": place.image_url or None,
+        "is_indoor": _infer_is_indoor(place.category),
+    }
+
+
+def _infer_is_indoor(category: str) -> bool:
+    indoor_keywords = (
+        "동굴",
+        "미술관",
+        "박물관",
+        "전시",
+        "공연",
+        "영화",
+        "카페",
+        "음식점",
+        "식당",
+        "시장",
+        "쇼핑",
+        "숙박",
+        "맛집",
+        "로컬시장",
+    )
+    return any(keyword in category for keyword in indoor_keywords)
     
 def create_recommended_route_from_route_id(user_id: str, route_id: str) -> str | None:
     recommendation = get_recommendation_detail(route_id)

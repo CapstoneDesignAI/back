@@ -22,6 +22,10 @@ class FakeTable:
         self.calls.append((self.name, payload))
         return self
 
+    def upsert(self, payload, **kwargs):
+        self.calls.append((self.name, payload, kwargs))
+        return self
+
     def execute(self):
         if self.name == "routes":
             return FakeExecuteResult([{"id": "route-test-id"}])

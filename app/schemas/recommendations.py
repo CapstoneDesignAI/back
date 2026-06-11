@@ -78,10 +78,37 @@ REGION_ID_ALIASES = {
 
 AREA_GROUP_ALIASES = {
     "강원권": "gangwon",
+    "강원": "gangwon",
+    "강원도": "gangwon",
+    "강원특별자치도": "gangwon",
     "충청권": "chungcheong",
+    "충청": "chungcheong",
+    "충청도": "chungcheong",
+    "충청북도": "chungcheong",
+    "충청남도": "chungcheong",
+    "충북": "chungcheong",
+    "충남": "chungcheong",
     "전라권": "jeolla",
+    "전라": "jeolla",
+    "전라도": "jeolla",
+    "전라북도": "jeolla",
+    "전북특별자치도": "jeolla",
+    "전라남도": "jeolla",
+    "전북": "jeolla",
+    "전남": "jeolla",
     "경상권": "gyeongsang",
+    "경상": "gyeongsang",
+    "경상도": "gyeongsang",
+    "경상북도": "gyeongsang",
+    "경상남도": "gyeongsang",
+    "경북": "gyeongsang",
+    "경남": "gyeongsang",
     "수도권 근교": "near_capital",
+    "수도권": "near_capital",
+    "경기도": "near_capital",
+    "경기": "near_capital",
+    "인천": "near_capital",
+    "인천광역시": "near_capital",
 }
 
 THEME_ALIASES = {
@@ -437,6 +464,7 @@ class RegionStory(BaseModel):
 class RecommendationSavePayload(BaseModel):
     title: str
     estimated_time: str
+    image_url: str | None = None
     places: list[RecommendedPlace]
 
 
