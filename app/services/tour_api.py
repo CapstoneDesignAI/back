@@ -8,7 +8,35 @@ from app.schemas.recommendations import RegionItem
 
 
 TOUR_API_AREA_CODES = {
+    # 충청권 (Chungcheong)
     "region-danyang": {"area_code": "33", "sigungu_code": "2"},
+    "region-okcheon": {"area_code": "33", "sigungu_code": "5"},
+    "region-goesan": {"area_code": "33", "sigungu_code": "1"},
+    "region-yeongdong": {"area_code": "33", "sigungu_code": "4"},
+    "region-boeun": {"area_code": "33", "sigungu_code": "3"},
+    "region-jecheon": {"area_code": "33", "sigungu_code": "7"},
+    "region-buyeo": {"area_code": "34", "sigungu_code": "7"},
+    "region-seocheon": {"area_code": "34", "sigungu_code": "9"},
+    "region-cheongyang": {"area_code": "34", "sigungu_code": "14"},
+    "region-taean": {"area_code": "34", "sigungu_code": "15"},
+    # 강원권 (Gangwon)
+    "region-pyeongchang": {"area_code": "32", "sigungu_code": "15"},
+    "region-yangyang": {"area_code": "32", "sigungu_code": "7"},
+    "region-yeongwol": {"area_code": "32", "sigungu_code": "8"},
+    "region-gangwon-goseong": {"area_code": "32", "sigungu_code": "2"},
+    # 전라권 (Jeolla)
+    "region-muju": {"area_code": "37", "sigungu_code": "5"},
+    "region-damyang": {"area_code": "38", "sigungu_code": "7"},
+    "region-sinan": {"area_code": "38", "sigungu_code": "12"},
+    "region-wando": {"area_code": "38", "sigungu_code": "16"},
+    # 경상권 (Gyeongsang)
+    "region-andong": {"area_code": "35", "sigungu_code": "11"},
+    "region-namhae": {"area_code": "36", "sigungu_code": "5"},
+    "region-hadong": {"area_code": "36", "sigungu_code": "15"},
+    # 수도권 근교 (Near Capital)
+    "region-gapyeong": {"area_code": "31", "sigungu_code": "1"},
+    "region-ganghwa": {"area_code": "2", "sigungu_code": "1"},
+    "region-ongjin": {"area_code": "2", "sigungu_code": "9"},
 }
 
 TOUR_API_CONTENT_TYPES = {

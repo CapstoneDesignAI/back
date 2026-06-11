@@ -6,21 +6,31 @@ from app.services.recommendations import get_recommendation_detail
 def get_routes(user_id: str) -> list[RouteListItem]:
     supabase = get_supabase()
     result = supabase.table("routes") \
-        .select("id, title, created_at, route_places(count)") \
+        .select("id, title, created_at, route_places(visit_order, places(image_url))") \
         .eq("user_id", user_id) \
         .execute()
     
     formatted_data = []
     for row in result.data:
-        place_count = 0
-        if row.get("route_places") and len(row["route_places"]) > 0:
-            place_count = row["route_places"][0].get("count", 0)
+        route_places = row.get("route_places") or []
+        place_count = len(route_places)
+        
+        # 첫 번째 장소의 이미지를 썸네일로 사용
+        thumbnail_url = None
+        if route_places:
+            sorted_places = sorted(route_places, key=lambda x: x.get("visit_order", 999))
+            for rp in sorted_places:
+                place_info = rp.get("places")
+                if place_info and isinstance(place_info, dict) and place_info.get("image_url"):
+                    thumbnail_url = place_info.get("image_url")
+                    break
 
         formatted_data.append({
             "route_id": row["id"],
             "title": row["title"],
             "created_at": row["created_at"],
-            "place_count": place_count
+            "place_count": place_count,
+            "image_url": thumbnail_url
         })
         
     return formatted_data
@@ -83,6 +93,13 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
                 "description": place.description,
                 "tags": place.tags
             })
+            
+            # 동선 저장 시 장소 테이블의 이미지 URL 업데이트 (존재하고 유효한 경우)
+            if place.image_url:
+                try:
+                    supabase.table("places").update({"image_url": place.image_url}).eq("id", place.place_id).execute()
+                except Exception as update_err:
+                    print(f"⚠️ 장소 이미지 업데이트 실패 ({place.place_id}): {update_err}")
             
         if places_to_insert:
             supabase.table("route_places").insert(places_to_insert).execute()

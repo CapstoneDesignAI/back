@@ -65,6 +65,20 @@ def generate_ai_reason_detail(
     summary: RecommendationSummary,
     places: list[RouteRecommendationPlace],
 ) -> AIReasonDetail:
+    if not places:
+        return AIReasonDetail(
+            overview=f"{region.sigungu}에서 {theme_label} 여행을 즐길 수 있는 코스를 준비하고 있습니다.",
+            route_design=f"{transport_label} 조건과 {summary.duration_text} 일정에 맞는 동선을 제공할 예정입니다.",
+            local_contribution=f"{region.sigungu} 지역 상권에 활력을 더하는 경험을 추천합니다.",
+            traveler_fit=f"{companion_label} 여행에 맞춰 편안한 흐름을 만들었습니다.",
+            closing_tip=f"{summary.cost_range_text} 정도의 소비를 예상할 수 있습니다.",
+            highlights=[
+                f"{theme_label} 테마 적합",
+                summary.contribution_label,
+            ],
+            generation_source="rule_based_ai_ready",
+        )
+
     local_places = [place for place in places if place.is_local_consumption]
     nature_places = [
         place

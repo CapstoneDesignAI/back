@@ -39,10 +39,11 @@ from app.services.recommendation_reasoning import (
     build_recommendation_reason,
 )
 from app.services.place_repository import fetch_place_candidates_from_supabase
-from app.services.tour_api import fetch_tour_api_places
+from app.services.tour_api import fetch_tour_api_places, fetch_tour_photo_image_url
 
 
 REGIONS = [
+    # 충청권 (Chungcheong)
     RegionItem(
         id="region-danyang",
         area_group="chungcheong",
@@ -111,6 +112,108 @@ REGIONS = [
         area_group="chungcheong",
         sido="충청남도",
         sigungu="태안군",
+        is_population_decline=True,
+    ),
+    # 강원권 (Gangwon)
+    RegionItem(
+        id="region-pyeongchang",
+        area_group="gangwon",
+        sido="강원특별자치도",
+        sigungu="평창군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-yangyang",
+        area_group="gangwon",
+        sido="강원특별자치도",
+        sigungu="양양군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-yeongwol",
+        area_group="gangwon",
+        sido="강원특별자치도",
+        sigungu="영월군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-gangwon-goseong",
+        area_group="gangwon",
+        sido="강원특별자치도",
+        sigungu="고성군",
+        is_population_decline=True,
+    ),
+    # 전라권 (Jeolla)
+    RegionItem(
+        id="region-muju",
+        area_group="jeolla",
+        sido="전북특별자치도",
+        sigungu="무주군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-damyang",
+        area_group="jeolla",
+        sido="전라남도",
+        sigungu="담양군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-sinan",
+        area_group="jeolla",
+        sido="전라남도",
+        sigungu="신안군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-wando",
+        area_group="jeolla",
+        sido="전라남도",
+        sigungu="완도군",
+        is_population_decline=True,
+    ),
+    # 경상권 (Gyeongsang)
+    RegionItem(
+        id="region-andong",
+        area_group="gyeongsang",
+        sido="경상북도",
+        sigungu="안동시",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-namhae",
+        area_group="gyeongsang",
+        sido="경상남도",
+        sigungu="남해군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-hadong",
+        area_group="gyeongsang",
+        sido="경상남도",
+        sigungu="하동군",
+        is_population_decline=True,
+    ),
+    # 수도권 근교 (Near Capital)
+    RegionItem(
+        id="region-gapyeong",
+        area_group="near_capital",
+        sido="경기도",
+        sigungu="가평군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-ganghwa",
+        area_group="near_capital",
+        sido="인천광역시",
+        sigungu="강화군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-ongjin",
+        area_group="near_capital",
+        sido="인천광역시",
+        sigungu="옹진군",
         is_population_decline=True,
     ),
 ]
@@ -226,15 +329,25 @@ def get_selection_options() -> SelectionOptionsResponse:
 def get_today_recommendation(
     reference_date: date | None = None,
 ) -> TodayRecommendationResponse:
+    today = reference_date or _today_in_korea()
+    
+    # 날짜를 기반으로 지역을 순환 선택 (단양 외 다른 지역도 노출되도록)
+    region_index = today.day % len(REGIONS)
+    selected_region = REGIONS[region_index]
+
     request = RecommendationRequest(
-        region_id="region-danyang",
+        region_id=selected_region.id,
         theme="healing",
         travel_time="half_day",
         transport="car",
         companion="friends",
     )
     recommendation = create_recommendation(request)
-    today = reference_date or _today_in_korea()
+
+    # 데이터가 없어 장소가 비어있다면, 안전하게 단양(샘플 데이터 있음)으로 폴백
+    if not recommendation.places and selected_region.id != "region-danyang":
+        request.region_id = "region-danyang"
+        recommendation = create_recommendation(request)
 
     return TodayRecommendationResponse(
         today_date=today.isoformat(),
@@ -757,7 +870,6 @@ def _build_recommendation_card(
                 tags=place.tags[:2],
                 image_url=_resolve_place_image_url(
                     place=place,
-                    route_thumbnail_url=thumbnail_url,
                     region=region,
                 ),
                 lat=place.lat,
@@ -776,12 +888,12 @@ def _apply_image_fallbacks(
     region: RegionItem,
     places: list[RouteRecommendationPlace],
 ) -> None:
-    route_thumbnail_url = _resolve_route_thumbnail(region=region, places=places)
+    keyword_image_cache: dict[str, str | None] = {}
     for place in places:
         place.image_url = _resolve_place_image_url(
             place=place,
-            route_thumbnail_url=route_thumbnail_url,
             region=region,
+            keyword_image_cache=keyword_image_cache,
         )
 
 
@@ -799,10 +911,40 @@ def _resolve_route_thumbnail(
 def _resolve_place_image_url(
     *,
     place: RouteRecommendationPlace,
-    route_thumbnail_url: str | None,
     region: RegionItem,
+    keyword_image_cache: dict[str, str | None] | None = None,
 ) -> str | None:
-    return place.image_url or route_thumbnail_url or DEFAULT_REGION_IMAGE_URLS.get(region.id)
+    return (
+        place.image_url
+        or _resolve_keyword_place_image_url(
+            place=place,
+            region=region,
+            keyword_image_cache=keyword_image_cache,
+        )
+        or DEFAULT_REGION_IMAGE_URLS.get(region.id)
+    )
+
+
+def _resolve_keyword_place_image_url(
+    *,
+    place: RouteRecommendationPlace,
+    region: RegionItem,
+    keyword_image_cache: dict[str, str | None] | None = None,
+) -> str | None:
+    keywords = (place.name, f"{region.sigungu} {place.name}")
+    for keyword in keywords:
+        keyword = keyword.strip()
+        if not keyword:
+            continue
+        if keyword_image_cache is not None and keyword in keyword_image_cache:
+            image_url = keyword_image_cache[keyword]
+        else:
+            image_url = fetch_tour_photo_image_url(keyword)
+            if keyword_image_cache is not None:
+                keyword_image_cache[keyword] = image_url
+        if image_url:
+            return image_url
+    return None
 
 
 def _to_today_card(
@@ -949,7 +1091,11 @@ def _get_candidate_places(
         if tour_api_places:
             return tour_api_places
 
-    return list_danyang_mvp_places()
+    # 단양인 경우에만 샘플 데이터 제공, 그 외 지역은 빈 결과 반환 (Tour API 연동 활성화됨)
+    if region.id == "region-danyang":
+        return list_danyang_mvp_places()
+    
+    return ()
 
 
 def _resolve_response_source(places: tuple[PlaceCandidate, ...]) -> str:

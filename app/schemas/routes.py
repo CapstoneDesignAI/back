@@ -17,6 +17,7 @@ class RouteListItem(BaseModel):
     title: str
     created_at: str
     place_count: int
+    image_url: str | None = None
 
 class RouteCreateResponse(BaseModel):
     message: str

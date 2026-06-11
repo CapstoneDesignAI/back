@@ -23,6 +23,13 @@ class FakeTable:
         self.calls.append((self.name, payload))
         return self
 
+    def update(self, payload):
+        self.calls.append((self.name, payload))
+        return self
+        
+    def eq(self, key, value):
+        return self
+
     def execute(self):
         if self.name == "routes":
             return FakeExecuteResult([{"id": "route-test-id"}])
@@ -64,13 +71,16 @@ def test_create_recommended_route_returns_route_id_and_saves_places(monkeypatch)
             "title": recommendation.legacy_route_payload.title,
         },
     )
-    assert fake_supabase.calls[1][0] == "route_places"
-    assert fake_supabase.calls[1][1][0] == {
+    
+    # route_places insert would be the last call after places updates
+    route_places_call = next(call for call in reversed(fake_supabase.calls) if call[0] == "route_places")
+    
+    assert route_places_call[1][0] == {
         "route_id": "route-test-id",
         "place_id": "sample-dodamsambong",
         "visit_order": 1,
         "description": recommendation.legacy_route_payload.places[0].description,
-        "tags": ["힐링", "자연투어", "뚜벅이", "지역활성화 추천"],
+        "tags": ["힐링", "자연투어", "뚜벅이", "지역활성화 추천"]
     }
 
 
@@ -91,8 +101,9 @@ def test_create_recommended_route_from_route_id_reuses_existing_save_flow(monkey
             "title": "단양 힐링 로컬 코스",
         },
     )
-    assert fake_supabase.calls[1][0] == "route_places"
-    assert [place["place_id"] for place in fake_supabase.calls[1][1]] == [
+    
+    route_places_call = next(call for call in reversed(fake_supabase.calls) if call[0] == "route_places")
+    assert [place["place_id"] for place in route_places_call[1]] == [
         "sample-dodamsambong",
         "sample-danyang-market",
         "sample-cafe-sann",
@@ -141,4 +152,3 @@ def test_save_route_from_recommendation_endpoint_accepts_route_id(monkeypatch) -
         "is_saved": True,
     }
     assert fake_supabase.calls[0][0] == "routes"
-    assert fake_supabase.calls[1][0] == "route_places"

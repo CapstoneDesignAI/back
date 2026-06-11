@@ -66,9 +66,9 @@ AI_COMPANION_MAP = {
 }
 
 AI_REGION_MAP = {
+    # 충청권
     "단양": "region-danyang",
     "단양군": "region-danyang",
-    "충청북도 단양군": "region-danyang",
     "옥천": "region-okcheon",
     "옥천군": "region-okcheon",
     "괴산": "region-goesan",
@@ -87,6 +87,62 @@ AI_REGION_MAP = {
     "청양군": "region-cheongyang",
     "태안": "region-taean",
     "태안군": "region-taean",
+    # 강원권
+    "평창": "region-pyeongchang",
+    "평창군": "region-pyeongchang",
+    "양양": "region-yangyang",
+    "양양군": "region-yangyang",
+    "영월": "region-yeongwol",
+    "영월군": "region-yeongwol",
+    "고성": "region-gangwon-goseong",
+    "강원 고성": "region-gangwon-goseong",
+    # 전라권
+    "무주": "region-muju",
+    "무주군": "region-muju",
+    "담양": "region-damyang",
+    "담양군": "region-damyang",
+    "신안": "region-sinan",
+    "신안군": "region-sinan",
+    "완도": "region-wando",
+    "완도군": "region-wando",
+    # 경상권
+    "안동": "region-andong",
+    "안동시": "region-andong",
+    "남해": "region-namhae",
+    "남해군": "region-namhae",
+    "하동": "region-hadong",
+    "하동군": "region-hadong",
+    # 수도권 근교
+    "가평": "region-gapyeong",
+    "가평군": "region-gapyeong",
+    "강화": "region-ganghwa",
+    "강화군": "region-ganghwa",
+    "옹진": "region-ongjin",
+    "옹진군": "region-ongjin",
+    # 광역/도 단위 매핑 (기본 대표 지역으로 폴백)
+    "경기도": "region-gapyeong",
+    "경기": "region-gapyeong",
+    "충청도": "region-danyang",
+    "충청북도": "region-danyang",
+    "충청남도": "region-buyeo",
+    "충북": "region-danyang",
+    "충남": "region-buyeo",
+    "강원도": "region-pyeongchang",
+    "강원특별자치도": "region-pyeongchang",
+    "강원": "region-pyeongchang",
+    "전라도": "region-damyang",
+    "전라북도": "region-muju",
+    "전북특별자치도": "region-muju",
+    "전라남도": "region-damyang",
+    "전북": "region-muju",
+    "전남": "region-damyang",
+    "경상도": "region-andong",
+    "경상북도": "region-andong",
+    "경상남도": "region-namhae",
+    "경북": "region-andong",
+    "경남": "region-namhae",
+    "인천": "region-ganghwa",
+    "인천광역시": "region-ganghwa",
 }
 
 
