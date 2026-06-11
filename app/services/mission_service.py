@@ -18,7 +18,7 @@ def get_missions_by_region(user_id: str, region_id: str) -> list[MissionListItem
     completed_res = supabase.table("user_missions") \
         .select("mission_id") \
         .eq("user_id", user_id) \
-        .eq("is_completed", True) \
+        .eq("status", "APPROVED") \
         .execute()
         
     completed_mission_ids = {row["mission_id"] for row in completed_res.data}
@@ -58,7 +58,7 @@ def get_mission_detail(user_id: str, mission_id: str) -> MissionDetailResponse:
         .select("id") \
         .eq("user_id", user_id) \
         .eq("mission_id", mission_id) \
-        .eq("is_completed", True) \
+        .eq("status", "APPROVED") \
         .execute()
         
     is_done = len(completed_res.data) > 0
@@ -151,6 +151,7 @@ async def auto_approve_mission_task(user_id: str, mission_id: str, user_mission_
             new_stamps = current_stamps + reward_count
             supabase.table("user_region_stamps").update({"collected_stamps": new_stamps}).eq("id", wallet_res.data[0]["id"]).execute()
         else:
+            current_stamps = 0
             new_stamps = reward_count
             supabase.table("user_region_stamps").insert({
                 "user_id": user_id, 
@@ -158,7 +159,21 @@ async def auto_approve_mission_task(user_id: str, mission_id: str, user_mission_
                 "collected_stamps": new_stamps
             }).execute()
             
-        print(f"스탬프 지급 완료! 현재 누적 스탬프: {new_stamps}개")
+        print(f"스탬프 지급 완료! 현재 누적 스탬프: {new_stamps}개 (이전: {current_stamps}개)")
+        
+        emblems_res = supabase.table("emblems") \
+            .select("id, name, unlock_stamp_threshold") \
+            .eq("region_id", region_id) \
+            .gt("unlock_stamp_threshold", current_stamps) \
+            .lte("unlock_stamp_threshold", new_stamps) \
+            .execute()
+            
+        if emblems_res.data:
+            new_user_emblems = [{"user_id": user_id, "emblem_id": e["id"]} for e in emblems_res.data]
+            supabase.table("user_emblems").insert(new_user_emblems).execute()
+            
+            earned_names = [e["name"] for e in emblems_res.data]
+            print(f"🎉 엠블럼 획득! 지급된 엠블럼: {earned_names}")
         
     except Exception as e:
         print(f"자동 승인 중 문제 발생: {e}")
