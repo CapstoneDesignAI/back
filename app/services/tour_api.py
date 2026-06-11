@@ -61,18 +61,44 @@ def fetch_tour_api_places(
     if not region_code:
         return ()
 
-    items = _fetch_area_based_items(
+    items = fetch_tour_api_place_items(
         area_code=region_code["area_code"],
         sigungu_code=region_code["sigungu_code"],
-        content_type_ids=THEME_CONTENT_TYPES.get(theme or "", ("12", "14", "28", "38", "39")),
+        theme=theme,
         num_of_rows=num_of_rows,
     )
 
     return tuple(
-        _to_place_candidate(item=item, region=region)
+        map_tour_api_item_to_place_candidate(item=item, region=region)
         for item in items
         if _has_required_location(item)
     )
+
+
+def fetch_tour_api_place_items(
+    *,
+    area_code: str,
+    sigungu_code: str,
+    theme: str | None = None,
+    num_of_rows: int = 20,
+) -> list[dict[str, Any]]:
+    if not settings.tour_api_service_key:
+        return []
+
+    return _fetch_area_based_items(
+        area_code=area_code,
+        sigungu_code=sigungu_code,
+        content_type_ids=THEME_CONTENT_TYPES.get(theme or "", ("12", "14", "28", "38", "39")),
+        num_of_rows=num_of_rows,
+    )
+
+
+def map_tour_api_item_to_place_candidate(
+    *,
+    item: dict[str, Any],
+    region: RegionItem,
+) -> PlaceCandidate:
+    return _to_place_candidate(item=item, region=region)
 
 
 def fetch_tour_photo_image_url(keyword: str) -> str | None:

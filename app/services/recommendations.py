@@ -38,6 +38,7 @@ from app.services.recommendation_scoring import (
 from app.services.recommendation_reasoning import (
     build_recommendation_reason,
 )
+from app.services.place_repository import fetch_place_candidates_from_supabase
 from app.services.tour_api import fetch_tour_api_places
 
 
@@ -181,6 +182,10 @@ TAG_LABELS = {
     "couple": "연인",
 }
 
+DEFAULT_REGION_IMAGE_URLS = {
+    "region-danyang": "https://tong.visitkorea.or.kr/cms/resource_photo/69/3414769_image2_1.jpg",
+}
+
 
 def list_regions(area_group: str | None = None) -> RegionListResponse:
     regions = REGIONS
@@ -270,6 +275,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         _to_recommended_place(order=index + 1, scored_place=scored_place)
         for index, scored_place in enumerate(plan.places)
     ]
+    _apply_image_fallbacks(region=region, places=places)
     route_legs = _build_route_legs(places)
     total_distance_meters = sum(leg.distance_meters for leg in route_legs)
     mobility = _build_mobility_info(
@@ -709,6 +715,7 @@ def _build_recommendation_card(
 ) -> RecommendationCard:
     preview_places = places[:3]
     route_preview_text = _build_route_preview_text(preview_places)
+    thumbnail_url = _resolve_route_thumbnail(region=region, places=places)
     return RecommendationCard(
         recommendation_id=recommendation_id,
         route_id=route_id,
@@ -720,7 +727,7 @@ def _build_recommendation_card(
         region_label=f"{region.sido} {region.sigungu}",
         theme_label=theme_label,
         region_story=region_story,
-        thumbnail_url=next((place.image_url for place in places if place.image_url), None),
+        thumbnail_url=thumbnail_url,
         contribution_score=plan.contribution_score,
         contribution_info=contribution_info,
         estimated_duration_text=summary.duration_text,
@@ -748,7 +755,11 @@ def _build_recommendation_card(
                 category=place.category,
                 summary=place.reason,
                 tags=place.tags[:2],
-                image_url=place.image_url,
+                image_url=_resolve_place_image_url(
+                    place=place,
+                    route_thumbnail_url=thumbnail_url,
+                    region=region,
+                ),
                 lat=place.lat,
                 lng=place.lng,
                 is_local_consumption=place.is_local_consumption,
@@ -758,6 +769,40 @@ def _build_recommendation_card(
         route_preview_text=route_preview_text,
         ai_reason_summary=ai_reason[:80],
     )
+
+
+def _apply_image_fallbacks(
+    *,
+    region: RegionItem,
+    places: list[RouteRecommendationPlace],
+) -> None:
+    route_thumbnail_url = _resolve_route_thumbnail(region=region, places=places)
+    for place in places:
+        place.image_url = _resolve_place_image_url(
+            place=place,
+            route_thumbnail_url=route_thumbnail_url,
+            region=region,
+        )
+
+
+def _resolve_route_thumbnail(
+    *,
+    region: RegionItem,
+    places: list[RouteRecommendationPlace],
+) -> str | None:
+    return next(
+        (place.image_url for place in places if place.image_url),
+        DEFAULT_REGION_IMAGE_URLS.get(region.id),
+    )
+
+
+def _resolve_place_image_url(
+    *,
+    place: RouteRecommendationPlace,
+    route_thumbnail_url: str | None,
+    region: RegionItem,
+) -> str | None:
+    return place.image_url or route_thumbnail_url or DEFAULT_REGION_IMAGE_URLS.get(region.id)
 
 
 def _to_today_card(
@@ -880,6 +925,18 @@ def _get_candidate_places(
     theme: str | None = None,
     limit: int = 20,
 ) -> tuple[PlaceCandidate, ...]:
+    if source in {"supabase", "db", "auto"}:
+        try:
+            supabase_places = fetch_place_candidates_from_supabase(
+                region=region,
+                theme=theme,
+                limit=max(limit, 100),
+            )
+        except Exception:
+            supabase_places = ()
+        if supabase_places:
+            return supabase_places
+
     if source in {"tour_api", "auto"}:
         try:
             tour_api_places = fetch_tour_api_places(
@@ -896,8 +953,17 @@ def _get_candidate_places(
 
 
 def _resolve_response_source(places: tuple[PlaceCandidate, ...]) -> str:
-    if places and all(place.source == "tour_api" for place in places):
+    if not places:
+        return "sample"
+    place_sources = {place.source for place in places}
+    if place_sources == {"tour_api"}:
         return "tour_api"
+    if place_sources == {"sample"}:
+        return "sample"
+    if place_sources == {"manual"}:
+        return "supabase"
+    if "tour_api" in place_sources:
+        return "supabase"
     return "sample"
 
 

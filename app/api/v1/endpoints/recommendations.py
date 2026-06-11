@@ -109,7 +109,7 @@ def read_regions(
 )
 def read_places(
     region_id: str | None = Query(default=None),
-    source: str = Query(default="sample", pattern="^(sample|tour_api|auto)$"),
+    source: str = Query(default="sample", pattern="^(sample|supabase|db|tour_api|auto)$"),
     theme: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=50),
 ) -> PlaceListResponse:
@@ -188,5 +188,5 @@ def _to_recommendation_request(request_data: AIRecommendationRequest) -> Recomme
         transport=AI_TRANSPORT_MAP.get(request_data.transportation.value, "walk"),
         companion=AI_COMPANION_MAP.get(request_data.companion.value, "friends"),
         prefer_ai_region=not bool(region_text),
-        data_source="sample",
+        data_source="auto",
     )

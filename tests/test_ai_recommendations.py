@@ -1,9 +1,112 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
+from app.schemas.recommendations import RecommendationCard
+from app.api.v1.endpoints import recommendations as recommendations_endpoint
+from app.services import recommendations as recommendation_service
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _disable_supabase_candidates(monkeypatch) -> None:
+    monkeypatch.setattr(
+        recommendation_service,
+        "fetch_place_candidates_from_supabase",
+        lambda **kwargs: (),
+    )
+    monkeypatch.setattr(
+        recommendation_service,
+        "fetch_tour_api_places",
+        lambda **kwargs: (),
+    )
+
+
+def test_ai_recommendations_uses_auto_data_source(monkeypatch) -> None:
+    captured_request = None
+
+    def fake_create_recommendation(request):
+        nonlocal captured_request
+        captured_request = request
+        return type(
+            "FakeRecommendation",
+            (),
+            {
+                "card": RecommendationCard(
+                    recommendation_id="sample-danyang-healing-half_day",
+                    route_id="route-danyang-healing-half_day-walk-friends",
+                    title="단양 힐링 로컬 코스",
+                    subtitle="충청북도 단양군에서 즐기는 반나절 여행",
+                    summary="DB 후보 기반 추천 카드",
+                    sido="충청북도",
+                    sigungu="단양군",
+                    region_label="충청북도 단양군",
+                    theme_label="힐링",
+                    region_story={
+                        "title": "단양 로컬 여행 이야기",
+                        "summary": "요약",
+                        "history": "역사",
+                        "local_story": "스토리",
+                        "local_tip": "팁",
+                        "source": "mvp_sample",
+                    },
+                    thumbnail_url=None,
+                    contribution_score=80,
+                    contribution_info={
+                        "score": 80,
+                        "label": "지역 기여도 80점",
+                        "description": "설명",
+                        "formula": "공식",
+                        "average_place_score": 80,
+                        "local_consumption_bonus": 0,
+                        "local_consumption_count": 0,
+                        "place_count": 0,
+                        "is_official_metric": False,
+                    },
+                    estimated_duration_text="반나절",
+                    estimated_cost_text="0원~0원",
+                    local_consumption_text="로컬 소비 0곳 포함",
+                    local_consumption_points=[],
+                    mobility={
+                        "level": "low",
+                        "label": "이동 난이도 낮음",
+                        "summary": "요약",
+                        "recommended_transport": "뚜벅이",
+                    },
+                    tags=["힐링", "반나절", "뚜벅이"],
+                    metric_badges=["지역 기여도 80점", "로컬 소비 0곳", "장소 0곳"],
+                    place_count=0,
+                    place_count_text="장소 0곳",
+                    place_preview_names=[],
+                    place_preview=[],
+                    route_preview_text="추천 장소 준비 중",
+                    ai_reason_summary="추천 이유",
+                )
+            },
+        )()
+
+    monkeypatch.setattr(
+        recommendations_endpoint,
+        "create_recommendation",
+        fake_create_recommendation,
+    )
+
+    response = client.post(
+        "/api/v1/ai-recommendations",
+        json={
+            "duration": "반나절",
+            "transportation": "도보",
+            "travel_purpose": "힐링",
+            "companion": "친구",
+            "region": "단양군",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured_request is not None
+    assert captured_request.data_source == "auto"
 
 
 def test_ai_recommendations_uses_scored_recommendation_response() -> None:

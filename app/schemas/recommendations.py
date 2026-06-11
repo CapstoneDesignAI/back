@@ -289,7 +289,7 @@ class RecommendationRequest(BaseModel):
     transport: str = Field(..., examples=["walk"])
     companion: str = Field(..., examples=["friends"])
     prefer_ai_region: bool = False
-    data_source: str = Field(default="sample", examples=["sample", "tour_api"])
+    data_source: str = Field(default="sample", examples=["sample", "supabase", "tour_api"])
 
     @field_validator("region_id", mode="before")
     @classmethod
