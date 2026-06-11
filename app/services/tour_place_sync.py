@@ -30,8 +30,99 @@ class TourPlaceSyncResult:
     place_ids: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class TourPlaceSyncFailure:
+    region_code: str
+    error: str
+
+
+@dataclass(frozen=True)
+class TourPlaceBatchSyncResult:
+    total_regions: int
+    success_count: int
+    failure_count: int
+    fetched_count: int
+    upserted_count: int
+    results: tuple[TourPlaceSyncResult, ...]
+    failures: tuple[TourPlaceSyncFailure, ...]
+
+
 class TourPlaceSyncError(Exception):
     """TourAPI place synchronization failed."""
+
+
+def list_sync_target_regions(
+    *,
+    area_group: str | None = None,
+    region_codes: list[str] | None = None,
+    offset_regions: int = 0,
+    limit_regions: int | None = None,
+) -> list[dict[str, Any]]:
+    supabase = get_supabase()
+    query = (
+        supabase.table("regions")
+        .select(
+            "id, region_code, name, sido, sigungu, area_group, area_code, "
+            "sigungu_code, is_population_decline, is_active"
+        )
+        .eq("is_population_decline", True)
+        .eq("is_active", True)
+    )
+    if area_group:
+        query = query.eq("area_group", area_group)
+
+    rows = query.execute().data or []
+    if region_codes:
+        requested_codes = set(region_codes)
+        rows = [row for row in rows if row.get("region_code") in requested_codes]
+    rows = sorted(rows, key=lambda row: str(row.get("region_code") or ""))
+    if offset_regions:
+        rows = rows[offset_regions:]
+    if limit_regions is not None:
+        rows = rows[:limit_regions]
+    return rows
+
+
+def sync_tour_api_places_for_regions(
+    *,
+    region_codes: list[str] | None = None,
+    area_group: str | None = None,
+    theme: str | None = None,
+    limit: int = 50,
+    offset_regions: int = 0,
+    limit_regions: int | None = None,
+) -> TourPlaceBatchSyncResult:
+    target_regions = list_sync_target_regions(
+        area_group=area_group,
+        region_codes=region_codes,
+        offset_regions=offset_regions,
+        limit_regions=limit_regions,
+    )
+    results: list[TourPlaceSyncResult] = []
+    failures: list[TourPlaceSyncFailure] = []
+
+    for region in target_regions:
+        region_code = str(region.get("region_code") or "")
+        try:
+            results.append(
+                _sync_tour_api_places_for_region(
+                    region=region,
+                    theme=theme,
+                    limit=limit,
+                )
+            )
+        except Exception as exc:
+            failures.append(TourPlaceSyncFailure(region_code=region_code, error=str(exc)))
+
+    return TourPlaceBatchSyncResult(
+        total_regions=len(target_regions),
+        success_count=len(results),
+        failure_count=len(failures),
+        fetched_count=sum(result.fetched_count for result in results),
+        upserted_count=sum(result.upserted_count for result in results),
+        results=tuple(results),
+        failures=tuple(failures),
+    )
 
 
 def sync_tour_api_places(
@@ -42,6 +133,17 @@ def sync_tour_api_places(
 ) -> TourPlaceSyncResult:
     supabase = get_supabase()
     region = _fetch_region(supabase=supabase, region_code=region_code)
+    return _sync_tour_api_places_for_region(region=region, theme=theme, limit=limit)
+
+
+def _sync_tour_api_places_for_region(
+    *,
+    region: dict[str, Any],
+    theme: str | None,
+    limit: int,
+) -> TourPlaceSyncResult:
+    supabase = get_supabase()
+    region_code = str(region.get("region_code") or "")
     area_code = str(region.get("area_code") or "")
     sigungu_code = str(region.get("sigungu_code") or "")
 
