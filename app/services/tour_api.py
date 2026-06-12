@@ -24,6 +24,7 @@ TOUR_API_AREA_CODES = {
     "region-yangyang": {"area_code": "32", "sigungu_code": "7"},
     "region-yeongwol": {"area_code": "32", "sigungu_code": "8"},
     "region-gangwon-goseong": {"area_code": "32", "sigungu_code": "2"},
+    "region-hwacheon": {"area_code": "32", "sigungu_code": "17"},
     # 전라권 (Jeolla)
     "region-muju": {"area_code": "37", "sigungu_code": "5"},
     "region-damyang": {"area_code": "38", "sigungu_code": "7"},

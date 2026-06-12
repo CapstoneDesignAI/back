@@ -86,6 +86,8 @@ class FakeTable:
             )
         if self.name == "routes":
             return FakeExecuteResult([{"id": "route-test-id"}])
+        if self.name == "regions":
+            return FakeExecuteResult([{"id": "region-danyang-db-id"}])
         return FakeExecuteResult([])
 
 
@@ -190,6 +192,14 @@ def test_create_recommended_route_returns_route_id_and_saves_places(monkeypatch)
         "description": recommendation.legacy_route_payload.places[0].description,
         "tags": ["힐링", "자연투어", "뚜벅이", "지역활성화 추천"],
     }
+    assert fake_supabase.calls[-1] == (
+        "user_region_stamps",
+        {
+            "user_id": "user-test-id",
+            "region_id": "region-danyang-db-id",
+            "collected_stamps": 0,
+        },
+    )
 
 
 def test_create_recommended_route_from_route_id_reuses_existing_save_flow(monkeypatch) -> None:

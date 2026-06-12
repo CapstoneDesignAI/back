@@ -2,7 +2,11 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.geo import calculate_distance_in_meters
-from app.data.danyang_places import PlaceCandidate, list_danyang_mvp_places
+from app.data.danyang_places import (
+    PlaceCandidate,
+    list_danyang_mvp_places,
+    list_hwacheon_mvp_places,
+)
 from app.schemas.recommendations import (
     ContributionInfo,
     LocalConsumptionPoint,
@@ -142,6 +146,13 @@ REGIONS = [
         area_group="gangwon",
         sido="강원특별자치도",
         sigungu="고성군",
+        is_population_decline=True,
+    ),
+    RegionItem(
+        id="region-hwacheon",
+        area_group="gangwon",
+        sido="강원특별자치도",
+        sigungu="화천군",
         is_population_decline=True,
     ),
     # 전라권 (Jeolla)
@@ -494,6 +505,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
+            region_id=region.id,
             description=ai_reason,
             summary=summary,
             places=places,
@@ -586,12 +598,14 @@ def _build_route_badges(plan: RecommendationPlan, theme_label: str) -> list[str]
 
 def _to_legacy_route_payload(
     title: str,
+    region_id: str,
     description: str,
     summary: RecommendationSummary,
     places: list[RouteRecommendationPlace],
 ) -> RecommendationSavePayload:
     return RecommendationSavePayload(
         title=title,
+        region_id=region_id,
         description=description,
         estimated_time=f"총 예상 소요 시간: {summary.duration_text}",
         image_url=next((place.image_url for place in places if place.image_url), None),
@@ -1093,9 +1107,11 @@ def _get_candidate_places(
         if tour_api_places:
             return tour_api_places
 
-    # 단양인 경우에만 샘플 데이터 제공, 그 외 지역은 빈 결과 반환 (Tour API 연동 활성화됨)
+    # 일부 MVP 지역은 API 장애나 데이터 공백 시에도 추천이 가능하도록 샘플을 제공합니다.
     if region.id == "region-danyang":
         return list_danyang_mvp_places()
+    if region.id == "region-hwacheon":
+        return list_hwacheon_mvp_places()
     
     return ()
 

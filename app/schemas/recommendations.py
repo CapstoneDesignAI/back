@@ -74,6 +74,9 @@ REGION_ID_ALIASES = {
     "청양군": "region-cheongyang",
     "태안": "region-taean",
     "태안군": "region-taean",
+    "화천": "region-hwacheon",
+    "화천군": "region-hwacheon",
+    "강원특별자치도 화천군": "region-hwacheon",
 }
 
 AREA_GROUP_ALIASES = {
@@ -463,6 +466,7 @@ class RegionStory(BaseModel):
 
 class RecommendationSavePayload(BaseModel):
     title: str
+    region_id: str | None = None
     description: str | None = None
     estimated_time: str
     image_url: str | None = None

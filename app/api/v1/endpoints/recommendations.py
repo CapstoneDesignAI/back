@@ -97,6 +97,10 @@ AI_REGION_MAP = {
     "영월군": "region-yeongwol",
     "고성": "region-gangwon-goseong",
     "강원 고성": "region-gangwon-goseong",
+    "화천": "region-hwacheon",
+    "화천군": "region-hwacheon",
+    "강원 화천": "region-hwacheon",
+    "강원특별자치도 화천군": "region-hwacheon",
     # 전라권
     "무주": "region-muju",
     "무주군": "region-muju",

@@ -90,6 +90,12 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
             
         if places_to_insert:
             supabase.table("route_places").insert(places_to_insert).execute()
+
+        _ensure_region_stamp_board(
+            supabase=supabase,
+            user_id=user_id,
+            route_data=route_data,
+        )
             
         return str(new_route_id)
         
@@ -151,6 +157,74 @@ def _insert_route(*, supabase, user_id: str, route_data: RecommendationSavePaylo
                 raise
 
     return supabase.table("routes").insert(payload).execute()
+
+
+def _ensure_region_stamp_board(*, supabase, user_id: str, route_data: RecommendationSavePayload) -> None:
+    region_id = _resolve_route_region_id(supabase=supabase, route_data=route_data)
+    if not region_id:
+        return
+
+    existing_result = (
+        supabase.table("user_region_stamps")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("region_id", region_id)
+        .execute()
+    )
+    if existing_result.data:
+        return
+
+    supabase.table("user_region_stamps").insert(
+        {
+            "user_id": user_id,
+            "region_id": region_id,
+            "collected_stamps": 0,
+        }
+    ).execute()
+
+
+def _resolve_route_region_id(*, supabase, route_data: RecommendationSavePayload) -> str | None:
+    if route_data.region_id:
+        return _resolve_region_db_id(supabase=supabase, region_identifier=route_data.region_id)
+
+    first_place = next((place for place in route_data.places if place.place_id), None)
+    if first_place is None:
+        return None
+
+    try:
+        result = (
+            supabase.table("places")
+            .select("region_id")
+            .eq("place_id", first_place.place_id)
+            .single()
+            .execute()
+        )
+    except Exception as error:
+        if _is_missing_column_error(error, "region_id", "places"):
+            return None
+        raise
+
+    if not result.data:
+        return None
+
+    return result.data.get("region_id")
+
+
+def _resolve_region_db_id(*, supabase, region_identifier: str) -> str | None:
+    if not region_identifier.startswith("region-"):
+        return region_identifier
+
+    result = (
+        supabase.table("regions")
+        .select("id")
+        .eq("region_code", region_identifier)
+        .execute()
+    )
+    rows = result.data or []
+    if not rows:
+        return None
+
+    return rows[0].get("id")
 
 
 def _fetch_route_detail(*, supabase, route_id: str):
