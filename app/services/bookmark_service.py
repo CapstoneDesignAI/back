@@ -53,7 +53,7 @@ def add_bookmark(user_id: str, payload: BookmarkAddRequest) -> BookmarkAddRespon
 def get_bookmarked_places(user_id: str, folder_id: str | None = None) -> list[BookmarkedPlaceResponse]:
     supabase = get_supabase()
 
-    query = supabase.table("bookmarks").select("id, folder_id, place_id, places(name, address, image_url, category)").eq("user_id", user_id)
+    query = supabase.table("bookmarks").select("id, folder_id, place_id, places(name, address, image_url, category, lat, lng)").eq("user_id", user_id)
     
     if folder_id:
         query = query.eq("folder_id", folder_id)
@@ -70,7 +70,9 @@ def get_bookmarked_places(user_id: str, folder_id: str | None = None) -> list[Bo
             "name": place_info.get("name") or "이름 없음",
             "address": place_info.get("address") or "주소 없음",
             "image_url": place_info.get("image_url"),
-            "category": place_info.get("category") or "기타"
+            "category": place_info.get("category") or "기타",
+            "latitude": place_info.get("lat"),
+            "longitude": place_info.get("lng"),
         })
     return formatted_data
 

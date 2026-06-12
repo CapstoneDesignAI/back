@@ -40,3 +40,5 @@ class BookmarkedPlaceResponse(BaseModel):
     address: str
     image_url: str | None = None
     category: str
+    latitude: float | None = None
+    longitude: float | None = None

@@ -18,7 +18,7 @@ def add_bookmark(payload: BookmarkAddRequest, user_id: str = Depends(get_current
     return success
 
 @router.get("", response_model=list[BookmarkedPlaceResponse], summary="찜한 장소 목록 조회")
-def get_bookmarked_places(folder_id: str , user_id: str = Depends(get_current_user)):
+def get_bookmarked_places(folder_id: str | None = None, user_id: str = Depends(get_current_user)):
     return bookmark_service.get_bookmarked_places(user_id, folder_id)
 
 @router.delete("/{place_id}", summary="찜한 장소 삭제")
