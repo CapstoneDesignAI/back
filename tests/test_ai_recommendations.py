@@ -201,6 +201,47 @@ def test_ai_recommendations_defaults_to_ai_region_when_region_is_missing() -> No
     assert data["tags"] == ["자연투어", "하루", "자차"]
 
 
+def test_score_recommendations_auto_source_falls_back_to_sample_region_when_empty() -> None:
+    response = client.post(
+        "/api/v1/recommendations",
+        json={
+            "area_group": "강원도",
+            "theme": "힐링",
+            "travel_time": "반나절",
+            "transport": "도보",
+            "companion": "친구",
+            "prefer_ai_region": False,
+            "data_source": "auto",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["route_id"] == "route-pyeongchang-healing-half_day-walk-friends"
+    assert data["sigungu"] == "평창군"
+    assert data["place_count"] == 4
+    assert data["estimated_cost_min"] > 0
+    assert data["card"]["place_count_text"] == "장소 4곳"
+    assert all(place["image_url"] for place in data["places"])
+
+
+def test_ai_recommendation_detail_reuses_auto_source_for_custom_route_id() -> None:
+    response = client.get(
+        "/api/v1/ai-recommendations/route-pyeongchang-healing-half_day-walk-friends"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["route_id"] == "route-pyeongchang-healing-half_day-walk-friends"
+    assert data["sigungu"] == "평창군"
+    assert data["place_count"] == 4
+    assert data["estimated_cost_min"] > 0
+    assert [place["visit_order"] for place in data["places"]] == [1, 2, 3, 4]
+    assert [place["order"] for place in data["places"]] == [1, 2, 3, 4]
+
+
 def test_ai_recommendations_accepts_mvp_korean_option_labels() -> None:
     response = client.post(
         "/api/v1/ai-recommendations",

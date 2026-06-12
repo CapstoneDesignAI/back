@@ -9,7 +9,7 @@ def get_routes(user_id: str) -> list[RouteListItem]:
     result = supabase.table("routes") \
         .select("id, title, created_at, image_url, route_places(visit_order)") \
         .eq("user_id", user_id) \
-        .order("created_at", descending=True) \
+        .order("created_at", desc=True) \
         .execute()
     
     formatted_data = []
@@ -29,11 +29,7 @@ def get_routes(user_id: str) -> list[RouteListItem]:
 
 def get_route_detail(route_id: str) -> RouteDetailResponse:
     supabase = get_supabase()
-    result = supabase.table("routes") \
-        .select("id, title, created_at, image_url, route_places(visit_order, place_id, description, tags, places(name, address, lat, lng, image_url, category))") \
-        .eq("id", route_id) \
-        .single() \
-        .execute()
+    result = _fetch_route_detail(supabase=supabase, route_id=route_id)
     
     data = result.data
     if not data:
@@ -60,7 +56,7 @@ def get_route_detail(route_id: str) -> RouteDetailResponse:
         "title": data["title"],
         "created_at": data["created_at"],
         "image_url": data.get("image_url"),
-        "description": data.get("description") or "AI가 생성한 맞춤 여행 코스입니다.",
+        "description": data.get("description"),
         "tags": data.get("tags") or ["추천", "힐링"],
         "places": formatted_places
     }
@@ -73,11 +69,11 @@ def create_recommended_route(user_id: str, route_data: RecommendationSavePayload
         if place_payloads:
             supabase.table("places").upsert(place_payloads, on_conflict="place_id").execute()
 
-        route_insert_result = supabase.table("routes").insert({
-            "user_id": user_id,
-            "title": route_data.title,
-            "image_url": route_data.image_url,
-        }).execute()
+        route_insert_result = _insert_route(
+            supabase=supabase,
+            user_id=user_id,
+            route_data=route_data,
+        )
         
         inserted_route = route_insert_result.data[0]
         new_route_id = inserted_route["id"]
@@ -134,6 +130,79 @@ def _infer_is_indoor(category: str) -> bool:
         "로컬시장",
     )
     return any(keyword in category for keyword in indoor_keywords)
+
+
+def _insert_route(*, supabase, user_id: str, route_data: RecommendationSavePayload):
+    payload = {
+        "user_id": user_id,
+        "title": route_data.title,
+        "image_url": route_data.image_url,
+    }
+
+    if route_data.description:
+        try:
+            return (
+                supabase.table("routes")
+                .insert({**payload, "description": route_data.description})
+                .execute()
+            )
+        except Exception as error:
+            if not _is_missing_column_error(error, "description", "routes"):
+                raise
+
+    return supabase.table("routes").insert(payload).execute()
+
+
+def _fetch_route_detail(*, supabase, route_id: str):
+    optional_route_columns = ["description", "tags"]
+    route_places_select = (
+        "route_places(visit_order, place_id, description, tags, "
+        "places(name, address, lat, lng, image_url, category))"
+    )
+
+    while True:
+        selected_columns = [
+            "id",
+            "title",
+            "created_at",
+            "image_url",
+            *optional_route_columns,
+            route_places_select,
+        ]
+        select_query = ", ".join(selected_columns)
+
+        try:
+            return (
+                supabase.table("routes")
+                .select(select_query)
+                .eq("id", route_id)
+                .single()
+                .execute()
+            )
+        except Exception as error:
+            missing_column = _get_missing_column(error, "routes", optional_route_columns)
+            if missing_column is None:
+                raise
+            optional_route_columns.remove(missing_column)
+
+
+def _is_missing_column_error(error: Exception, column: str, table: str) -> bool:
+    message = str(error)
+    return (
+        f"column {table}.{column} does not exist" in message
+        or (
+            "PGRST204" in message
+            and f"'{column}' column" in message
+            and f"'{table}'" in message
+        )
+    )
+
+
+def _get_missing_column(error: Exception, table: str, columns: list[str]) -> str | None:
+    for column in columns:
+        if _is_missing_column_error(error, column, table):
+            return column
+    return None
     
 def create_recommended_route_from_route_id(user_id: str, route_id: str) -> str | None:
     recommendation = get_recommendation_detail(route_id)

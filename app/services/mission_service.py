@@ -1,4 +1,5 @@
 import asyncio
+from uuid import UUID
 from fastapi import HTTPException
 from app.db.base import get_supabase
 from app.schemas.missions import MissionListItem, MissionDetailResponse, MissionVerifyRequest, MissionVerifyResponse
@@ -41,10 +42,11 @@ def get_missions_by_region(user_id: str, region_id: str) -> list[MissionListItem
 
 def get_mission_detail(user_id: str, mission_id: str) -> MissionDetailResponse:
     supabase = get_supabase()
+    resolved_mission_id = _resolve_mission_id(supabase, mission_id)
     
     mission_res = supabase.table("missions") \
         .select("*, places(name, lat, lng)") \
-        .eq("id", mission_id) \
+        .eq("id", resolved_mission_id) \
         .single() \
         .execute()
         
@@ -57,7 +59,7 @@ def get_mission_detail(user_id: str, mission_id: str) -> MissionDetailResponse:
     completed_res = supabase.table("user_missions") \
         .select("id") \
         .eq("user_id", user_id) \
-        .eq("mission_id", mission_id) \
+        .eq("mission_id", resolved_mission_id) \
         .eq("status", "APPROVED") \
         .execute()
         
@@ -79,8 +81,9 @@ def get_mission_detail(user_id: str, mission_id: str) -> MissionDetailResponse:
 
 def request_mission_verification(user_id: str, mission_id: str, payload: MissionVerifyRequest) -> MissionVerifyResponse:
     supabase = get_supabase()
+    resolved_mission_id = _resolve_mission_id(supabase, mission_id)
     
-    mission_res = supabase.table("missions").select("*, places(lat, lng)").eq("id", mission_id).single().execute()
+    mission_res = supabase.table("missions").select("*, places(lat, lng)").eq("id", resolved_mission_id).single().execute()
     if not mission_res.data:
         raise HTTPException(status_code=404, detail="해당 미션을 찾을 수 없습니다.")
         
@@ -93,7 +96,7 @@ def request_mission_verification(user_id: str, mission_id: str, payload: Mission
         if distance > 100.0:
             raise HTTPException(status_code=400, detail=f"인증 장소에서 너무 멉니다. (거리: 약 {int(distance)}m)")
 
-    existing = supabase.table("user_missions").select("id, status").eq("user_id", user_id).eq("mission_id", mission_id).execute()
+    existing = supabase.table("user_missions").select("id, status").eq("user_id", user_id).eq("mission_id", resolved_mission_id).execute()
     
     if existing.data:
         current_status = existing.data[0]["status"]
@@ -115,7 +118,7 @@ def request_mission_verification(user_id: str, mission_id: str, payload: Mission
 
     insert_res = supabase.table("user_missions").insert({
         "user_id": user_id,
-        "mission_id": mission_id,
+        "mission_id": resolved_mission_id,
         "image_url": payload.image_url,
         "status": "PENDING" 
     }).execute()
@@ -133,11 +136,12 @@ async def auto_approve_mission_task(user_id: str, mission_id: str, user_mission_
     supabase = get_supabase()
     
     try:
+        resolved_mission_id = _resolve_mission_id(supabase, mission_id)
         supabase.table("user_missions").update({"status": "APPROVED"}).eq("id", user_mission_id).execute()
         
         mission_res = supabase.table("missions") \
             .select("region_id, reward_stamp_count") \
-            .eq("id", mission_id).single().execute()
+            .eq("id", resolved_mission_id).single().execute()
             
         region_id = mission_res.data["region_id"]
         reward_count = mission_res.data["reward_stamp_count"]
@@ -177,3 +181,51 @@ async def auto_approve_mission_task(user_id: str, mission_id: str, user_mission_
         
     except Exception as e:
         print(f"자동 승인 중 문제 발생: {e}")
+
+
+def _resolve_mission_id(supabase, mission_identifier: str) -> str:
+    if _is_uuid(mission_identifier):
+        return mission_identifier
+
+    try:
+        result = (
+            supabase.table("missions")
+            .select("id")
+            .eq("slug", mission_identifier)
+            .single()
+            .execute()
+        )
+    except Exception as error:
+        if _is_missing_column_error(error, "slug", "missions") or _is_not_found_error(error):
+            raise HTTPException(status_code=404, detail="해당 미션을 찾을 수 없습니다.") from error
+        raise
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="해당 미션을 찾을 수 없습니다.")
+
+    return result.data["id"]
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_missing_column_error(error: Exception, column: str, table: str) -> bool:
+    message = str(error)
+    return (
+        f"column {table}.{column} does not exist" in message
+        or (
+            "PGRST204" in message
+            and f"'{column}' column" in message
+            and f"'{table}'" in message
+        )
+    )
+
+
+def _is_not_found_error(error: Exception) -> bool:
+    message = str(error)
+    return "PGRST116" in message or "Cannot coerce the result to a single JSON object" in message

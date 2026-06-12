@@ -463,6 +463,7 @@ class RegionStory(BaseModel):
 
 class RecommendationSavePayload(BaseModel):
     title: str
+    description: str | None = None
     estimated_time: str
     image_url: str | None = None
     places: list[RecommendedPlace]

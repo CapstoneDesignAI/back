@@ -1,14 +1,13 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from app.schemas.stamps import StampBoardResponse
-from app.services.stamp_service import get_user_stamp_board
+from app.services.stamp_service import get_user_stamp_boards
 from app.core.jwt import get_current_user
 
 router = APIRouter(prefix="/stamps", tags=["stamps"])
 
-@router.get("", response_model=StampBoardResponse, summary="내 지역별 스탬프 쿠폰 조회")
-def read_stamp_board(
-    region_id: str = Query(..., description="조회할 지역 ID"),
+@router.get("", response_model=list[StampBoardResponse], summary="내 전체 지역 스탬프 쿠폰 조회")
+def read_stamp_boards(
     user_id: str = Depends(get_current_user)
 ):
-    result = get_user_stamp_board(user_id, region_id)
+    result = get_user_stamp_boards(user_id)
     return result

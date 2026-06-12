@@ -381,6 +381,12 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         source=request.data_source,
         theme=request.theme,
     )
+    if not candidate_places and request.data_source == "auto":
+        candidate_places = _get_candidate_places(
+            region=_resolve_region_by_id("region-danyang"),
+            source="sample",
+            theme=request.theme,
+        )
     plan = build_recommendation_plan(
         request=request,
         candidates=candidate_places,
@@ -488,6 +494,7 @@ def create_recommendation(request: RecommendationRequest) -> RecommendationRespo
         map_markers=[_to_map_marker(place) for place in places],
         legacy_route_payload=_to_legacy_route_payload(
             title=title,
+            description=ai_reason,
             summary=summary,
             places=places,
         ),
@@ -579,11 +586,13 @@ def _build_route_badges(plan: RecommendationPlan, theme_label: str) -> list[str]
 
 def _to_legacy_route_payload(
     title: str,
+    description: str,
     summary: RecommendationSummary,
     places: list[RouteRecommendationPlace],
 ) -> RecommendationSavePayload:
     return RecommendationSavePayload(
         title=title,
+        description=description,
         estimated_time=f"총 예상 소요 시간: {summary.duration_text}",
         image_url=next((place.image_url for place in places if place.image_url), None),
         places=[
@@ -908,7 +917,8 @@ def _resolve_route_thumbnail(
 ) -> str | None:
     return next(
         (place.image_url for place in places if place.image_url),
-        DEFAULT_REGION_IMAGE_URLS.get(region.id),
+        DEFAULT_REGION_IMAGE_URLS.get(region.id)
+        or DEFAULT_REGION_IMAGE_URLS.get("region-danyang"),
     )
 
 
@@ -918,7 +928,14 @@ def _resolve_place_image_url(
     route_thumbnail_url: str | None,
     region: RegionItem,
 ) -> str | None:
-    return place.image_url or route_thumbnail_url or DEFAULT_REGION_IMAGE_URLS.get(region.id)
+    return (
+        place.image_url
+        or route_thumbnail_url
+        or DEFAULT_REGION_IMAGE_URLS.get(region.id)
+        or DEFAULT_REGION_IMAGE_URLS.get("region-danyang")
+    )
+
+
 def _to_today_card(
     recommendation: RecommendationResponse,
 ) -> TodayRecommendationCard:
@@ -987,6 +1004,7 @@ def _parse_route_id(route_id: str) -> RecommendationRequest | None:
         travel_time=travel_time,
         transport=transport,
         companion=companion,
+        data_source="auto",
     )
 
 
