@@ -1,5 +1,10 @@
 from dataclasses import dataclass
+import json
+from typing import Any
 
+import httpx
+
+from app.core.config import settings
 from app.schemas.recommendations import (
     AIReasonDetail,
     RecommendationSummary,
@@ -23,7 +28,7 @@ def build_recommendation_reason(
     summary: RecommendationSummary,
     places: list[RouteRecommendationPlace],
 ) -> RecommendationReasonResult:
-    return build_rule_based_recommendation_reason(
+    fallback_result = build_rule_based_recommendation_reason(
         region=region,
         theme_label=theme_label,
         transport_label=transport_label,
@@ -31,6 +36,21 @@ def build_recommendation_reason(
         summary=summary,
         places=places,
     )
+    if not _should_call_openai():
+        return fallback_result
+
+    try:
+        return _build_openai_recommendation_reason(
+            region=region,
+            theme_label=theme_label,
+            transport_label=transport_label,
+            companion_label=companion_label,
+            summary=summary,
+            places=places,
+            fallback_detail=fallback_result.detail,
+        )
+    except Exception:
+        return fallback_result
 
 
 def build_rule_based_recommendation_reason(
@@ -139,4 +159,160 @@ def _join_names(places: list[RouteRecommendationPlace]) -> str:
     if len(names) == 1:
         return names[0]
     return ", ".join(names[:-1]) + f", {names[-1]}"
+
+
+def _should_call_openai() -> bool:
+    return bool(
+        settings.openai_api_key
+        and settings.llm_provider.strip().lower() == "openai"
+    )
+
+
+def _build_openai_recommendation_reason(
+    *,
+    region: RegionItem,
+    theme_label: str,
+    transport_label: str,
+    companion_label: str,
+    summary: RecommendationSummary,
+    places: list[RouteRecommendationPlace],
+    fallback_detail: AIReasonDetail,
+) -> RecommendationReasonResult:
+    response = httpx.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {settings.openai_api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": settings.openai_model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You write concise Korean travel route recommendation reasons for Tripick. "
+                        "Use only the supplied selected places. Do not add new places or reorder them. "
+                        "Return strict JSON only."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": _build_openai_prompt(
+                        region=region,
+                        theme_label=theme_label,
+                        transport_label=transport_label,
+                        companion_label=companion_label,
+                        summary=summary,
+                        places=places,
+                    ),
+                },
+            ],
+            "temperature": 0.4,
+            "response_format": {"type": "json_object"},
+        },
+        timeout=settings.llm_timeout_seconds,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload["choices"][0]["message"]["content"]
+    data = _parse_openai_json_content(content)
+
+    reason_detail = AIReasonDetail(
+        overview=_get_non_empty_string(data, "overview", fallback_detail.overview),
+        route_design=_get_non_empty_string(
+            data,
+            "route_design",
+            fallback_detail.route_design,
+        ),
+        local_contribution=_get_non_empty_string(
+            data,
+            "local_contribution",
+            fallback_detail.local_contribution,
+        ),
+        traveler_fit=_get_non_empty_string(
+            data,
+            "traveler_fit",
+            fallback_detail.traveler_fit,
+        ),
+        closing_tip=_get_non_empty_string(data, "closing_tip", fallback_detail.closing_tip),
+        highlights=_get_highlights(data, fallback_detail.highlights),
+        generation_source="llm_openai",
+    )
+    return RecommendationReasonResult(
+        text=build_ai_reason_text(reason_detail),
+        detail=reason_detail,
+    )
+
+
+def _build_openai_prompt(
+    *,
+    region: RegionItem,
+    theme_label: str,
+    transport_label: str,
+    companion_label: str,
+    summary: RecommendationSummary,
+    places: list[RouteRecommendationPlace],
+) -> str:
+    place_lines = [
+        (
+            f"{place.order}. {place.name} | category={place.category} | "
+            f"stay={place.stay_minutes}min | local_consumption={place.is_local_consumption} | "
+            f"score={place.recommendation_score} | reason={place.reason} | "
+            f"contribution={place.contribution_reason}"
+        )
+        for place in places
+    ]
+    return (
+        "다음은 이미 점수 기반 추천 로직으로 선별된 장소 목록입니다. "
+        "장소를 새로 고르거나 순서를 바꾸지 말고, 추천 이유 문장만 생성하세요.\n\n"
+        f"지역: {region.sido} {region.sigungu}\n"
+        f"테마: {theme_label}\n"
+        f"이동수단: {transport_label}\n"
+        f"동행: {companion_label}\n"
+        f"예상 시간: {summary.duration_text}\n"
+        f"예상 비용: {summary.cost_range_text}\n"
+        f"지역 기여도: {summary.contribution_label}\n"
+        f"로컬 소비: {summary.local_consumption_text}\n\n"
+        "선별 장소:\n"
+        + "\n".join(place_lines)
+        + "\n\n"
+        "아래 JSON 형식으로만 답하세요.\n"
+        "{\n"
+        '  "overview": "한두 문장",\n'
+        '  "route_design": "동선 구성 이유",\n'
+        '  "local_contribution": "지역 소비/기여 설명",\n'
+        '  "traveler_fit": "사용자 조건 적합성 설명",\n'
+        '  "closing_tip": "마무리 팁",\n'
+        '  "highlights": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"]\n'
+        "}"
+    )
+
+
+def _parse_openai_json_content(content: str) -> dict[str, Any]:
+    parsed = json.loads(content)
+    if not isinstance(parsed, dict):
+        raise ValueError("OpenAI recommendation reason response must be a JSON object.")
+    return parsed
+
+
+def _get_non_empty_string(
+    data: dict[str, Any],
+    key: str,
+    fallback: str,
+) -> str:
+    value = data.get(key)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return fallback
+
+
+def _get_highlights(
+    data: dict[str, Any],
+    fallback: list[str],
+) -> list[str]:
+    value = data.get("highlights")
+    if not isinstance(value, list):
+        return fallback
+    highlights = [str(item).strip() for item in value if str(item).strip()]
+    return highlights[:3] or fallback
 
