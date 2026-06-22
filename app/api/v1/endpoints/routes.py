@@ -1,23 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from app.schemas.routes import (
-    RouteCreateResponse,
-    RouteDetailResponse,
-    RouteListItem,
-    RouteTransportationResponse,
-    RouteSaveFromRecommendationRequest,
-    RouteSaveFromRecommendationResponse,
-)
-from app.services.odsay_service import get_transportation_segments
+from app.schemas.routes import RouteCreateResponse, RouteListItem, RouteDetailResponse
+from app.services.route_service import get_routes, get_route_detail, create_recommended_route, delete_route
 from app.core.jwt import get_current_user 
-
 from app.schemas.recommendations import RecommendationSavePayload
-from app.services.route_service import (
-    create_recommended_route,
-    create_recommended_route_from_route_id,
-    delete_route,
-    get_route_detail,
-    get_routes,
-)
 
 router = APIRouter(prefix="/routes")
 
@@ -33,19 +18,6 @@ def read_route_detail(route_id: str):
     if not result:
         raise HTTPException(status_code=404, detail="동선을 찾을 수 없습니다.")
     return result
-
-
-@router.get(
-    "/{route_id}/transportation",
-    response_model=RouteTransportationResponse,
-    summary="동선 장소별 교통 및 이동 안내",
-)
-def read_route_transportation(route_id: str):
-    result = get_transportation_segments(route_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail="동선을 찾을 수 없습니다.")
-    return result
-
 
 @router.post(
     "",
