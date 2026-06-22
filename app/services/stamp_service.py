@@ -6,8 +6,9 @@ def get_user_stamp_boards(user_id: str) -> list[StampBoardResponse]:
     supabase = get_supabase()
 
     wallet_res = supabase.table("user_region_stamps") \
-        .select("region_id, collected_stamps") \
+        .select("region_id, collected_stamps, updated_at") \
         .eq("user_id", user_id) \
+        .order("updated_at", desc=True) \
         .execute()
 
     wallets = wallet_res.data or []

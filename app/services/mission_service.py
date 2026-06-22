@@ -82,6 +82,15 @@ def get_mission_detail(user_id: str, mission_id: str) -> MissionDetailResponse:
 def request_mission_verification(user_id: str, mission_id: str, payload: MissionVerifyRequest) -> MissionVerifyResponse:
     supabase = get_supabase()
     resolved_mission_id = _resolve_mission_id(supabase, mission_id)
+
+    if not payload.image_url:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "PHOTO_VERIFICATION_FAILED",
+                "message": "미션 인증 사진을 먼저 업로드해 주세요.",
+            },
+        )
     
     mission_res = supabase.table("missions").select("*, places(lat, lng)").eq("id", resolved_mission_id).single().execute()
     if not mission_res.data:
@@ -94,7 +103,13 @@ def request_mission_verification(user_id: str, mission_id: str, payload: Mission
     if target_lat and target_lng:
         distance = calculate_distance_in_meters(payload.latitude, payload.longitude, target_lat, target_lng)
         if distance > 100.0:
-            raise HTTPException(status_code=400, detail=f"인증 장소에서 너무 멉니다. (거리: 약 {int(distance)}m)")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "LOCATION_VERIFICATION_FAILED",
+                    "message": f"인증 장소에서 너무 멉니다. (거리: 약 {int(distance)}m)",
+                },
+            )
 
     existing = supabase.table("user_missions").select("id, status").eq("user_id", user_id).eq("mission_id", resolved_mission_id).execute()
     
